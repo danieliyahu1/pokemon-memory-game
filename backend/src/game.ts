@@ -100,14 +100,19 @@ class Game implements GameType {
         {
             throw new Error("The game is not over. can not declare winner.");
         }
-        let winner : PlayerType;
+        let winner : PlayerType | undefined;
+        const draw = undefined;
         if(this.p1.points > this.p2.points)
         {
             winner = this.p1;
         }
-        else
+        else if(this.p2.points > this.p1.points)
         {
             winner = this.p2;
+        }
+        else
+        {
+            winner = undefined;
         }
 
         return winner
