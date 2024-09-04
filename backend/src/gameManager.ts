@@ -1,7 +1,7 @@
 import http from 'http';
 import { Socket, Server as SocketServer } from 'socket.io';
 import SocketEventHandler from './socketHandlers';
-import { CardType, GameManagerType, GameType, ImageItem, PlayerType, socketEventHandlerType } from './types';
+import { GameManagerType, GameType, ImageItem, PlayerType, socketEventHandlerType } from './types';
 import {Result, MoveResult } from './sharedTypes'
 import { v2 as cloudinary } from 'cloudinary';
 import Player from './player';

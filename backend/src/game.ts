@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
-import { CardType, GameType, PlayerType } from "./types";
-import {Result, MoveResult } from './sharedTypes'
+import { GameType, PlayerType } from "./types";
+import {Result, MoveResult, CardType } from './sharedTypes'
 
 
 class Game implements GameType {

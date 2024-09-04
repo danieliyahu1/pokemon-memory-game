@@ -1,4 +1,4 @@
-import { CardType } from "../../../backend/src/types";
+import { CardType } from "../../../backend/src/sharedTypes";
 import Card from "./Card";
 
 type BoardProps = {

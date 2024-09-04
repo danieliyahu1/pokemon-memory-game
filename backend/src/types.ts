@@ -1,5 +1,5 @@
 import { Socket, Server as SocketServer } from 'socket.io';
-import {Result, MoveResult } from './sharedTypes'
+import {Result, MoveResult, CardType } from './sharedTypes';
 
 
 export type GameManagerType = {
@@ -49,10 +49,5 @@ export type ImageItem = {
     src: string;
 };
 
-export type CardType = {
-    id: number;
-    coverImage: string;
-    uncoverImage: string;
-    covered: boolean;
-};
+
 

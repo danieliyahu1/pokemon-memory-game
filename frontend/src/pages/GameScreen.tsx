@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react"
 import { useSocketContext } from "../contexts/SocketContext";
-import { CardType } from '../../../backend/src/types'
 import Board from "../components/Board";
-import {Result, MoveResult } from '../../../backend/src/sharedTypes';
+import {Result, MoveResult, CardType } from '../../../backend/src/sharedTypes';
 import GameHeader from "../components/Header";
 import {toast, ToastContainer, Zoom} from 'react-toastify';
 import {PokemonMemoryPageProps} from '../App'

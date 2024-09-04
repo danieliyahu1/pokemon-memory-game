@@ -1,4 +1,9 @@
-import { CardType } from "./types"
+export type CardType = {
+    id: number;
+    coverImage: string;
+    uncoverImage: string;
+    covered: boolean;
+};
 
 export type Result = {
     cards: CardType[],
