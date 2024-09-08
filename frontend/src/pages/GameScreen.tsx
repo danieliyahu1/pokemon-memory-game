@@ -37,7 +37,6 @@ const GameScreen = ({ endPageFunction: gameOver }: PokemonMemoryPageProps) => {
             setMyTurn(myTurn);
         }   
          
-
         const setPlayersName = ({ opponentName }: { myName: string; opponentName: string }) => {            
             setOpponentName(opponentName);
         };  
@@ -60,6 +59,11 @@ const GameScreen = ({ endPageFunction: gameOver }: PokemonMemoryPageProps) => {
             setCards(cards);
             setMyTurn(myTurn);
             setBoardDisable(disableBoard);
+            console.log(`
+                handle Hide Cards - game screen.tsx
+                my turn = ${myTurn}
+                board disable = ${disableBoard}
+                `)
         };
 
         const handleGameOver = ({ i_WinnerName, i_Points, i_Moves }: { i_WinnerName: string | undefined , i_Points: number, i_Moves: number }) => {

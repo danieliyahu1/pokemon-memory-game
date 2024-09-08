@@ -6,12 +6,15 @@ export type GameManagerType = {
     io: SocketServer;
     start(): void;
     createPlayer(i_Name: string, i_Id:string): void;
-    createGame(i_Socket: Socket): void;
+    createAIPlayer(i_Name: string): void;
+    creatrGameOnline(i_Socket: Socket): void;
+    creatrGameAgainstAI(i_Socket: Socket): void;
     canCreateGame() : boolean
     initializeGameForUI(i_Socket: Socket) : { result: Result, game: GameType, eventToEmit: string };
     getPlayersName(i_PlayerId: string) : {myName: string, opponentName: string, eventToEmit: string};
     move(i_Socket: Socket, i_CardId: number) : { moveResult: MoveResult, game: GameType, eventToEmitForCurrentPlayer: string, eventToEmitForSecondPlayer: string };
-    hideCards(i_Socket: Socket): { hideCardsResult: MoveResult, game: GameType, eventToEmitForCurrentPlayer: string, eventToEmitForSecondPlayer: string };
+    AIMove(i_PlayerId: string): {endOfTurn:boolean, gameOver:boolean};
+    hideCards(i_Id: string): { hideCardsResult: MoveResult, game: GameType, eventToEmitForCurrentPlayer: string, eventToEmitForSecondPlayer: string };
     findGameByPlayerId (i_id:string): GameType;
 };
 
@@ -23,13 +26,16 @@ export type socketEventHandlerType = {
 export type GameType = {
     getPlayer(i_Id : string) : PlayerType;
     coverChosenCards() : void;
-    move(i_Socket: Socket, i_CardId: number): MoveResult;
-    hideCards(i_Socket: Socket): MoveResult;
+    move(i_CardId: number): MoveResult;
+    hideCards(): MoveResult;
     initializeGameForUI(i_Socket: Socket, ) : Result;
+    AIMove() : MoveResult;
     readonly p1: PlayerType;
     readonly p2: PlayerType;
     readonly id: string;
     readonly cards: CardType[];
+    readonly AIOponnent: boolean;
+    readonly gameIsOver: boolean;
 }
 
 export type PlayerType = {
@@ -43,6 +49,11 @@ export type PlayerType = {
     increasePoints(i_NumToIncrease: number): void;
     increaseMovesCount(i_NumToIncrease: number): void;
 }
+
+export type AIPlayerType = PlayerType & {
+    move(i_Cards: CardType[]): number;  // Add a method specifically for the computer player's move
+    cardToRemember(i_Card: CardType): void;
+};
 
 export type ImageItem = {
     id: number;

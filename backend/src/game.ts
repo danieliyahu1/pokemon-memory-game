@@ -1,18 +1,19 @@
 import { Socket } from "socket.io";
-import { GameType, PlayerType } from "./types";
+import { GameType, PlayerType, AIPlayerType } from "./types";
 import {Result, MoveResult, CardType } from './sharedTypes'
 
 
 class Game implements GameType {
     private m_p1: PlayerType;
-    private m_p2: PlayerType;
+    private m_p2: PlayerType | AIPlayerType;
     private m_id: string;
     private m_cards: CardType[];
     private m_chosenCards: CardType[];
     private m_GameOver: boolean;
+    private m_AIOponnent: boolean;
     private onGameOver: (i_GameId: string, i_Winner: PlayerType | undefined, i_Points: number, i_Moves: number) => void;
 
-    constructor(p1: PlayerType, p2: PlayerType, id: string, cards: CardType[], onGameOver: (i_GameId: string, i_Winner: PlayerType | undefined, i_Points: number, i_Moves: number) => void) {
+    constructor(p1: PlayerType, p2: PlayerType | AIPlayerType, id: string, cards: CardType[], AIOponnent: boolean, onGameOver: (i_GameId: string, i_Winner: PlayerType | undefined, i_Points: number, i_Moves: number) => void) {
         this.m_p1 = p1;
         this.m_p2 = p2;
         this.m_id = id;
@@ -21,9 +22,15 @@ class Game implements GameType {
         this.m_p1.turn = true;
         this.onGameOver = onGameOver;
         this.m_GameOver = false;
+        this.m_AIOponnent = AIOponnent;
     }
 
-    public move(i_Socket: Socket, i_CardId: number) : MoveResult
+    private getCurrentPlayer(): PlayerType | AIPlayerType
+    {
+        return this.p1.turn ? this.p1 : this.p2;
+    }
+
+    public move(i_CardId: number) : MoveResult
     {        
         if (this.m_GameOver) {
             throw new Error("The game is over. No further moves are allowed.");
@@ -45,13 +52,13 @@ class Game implements GameType {
             throw new Error("Card already been uncovered");
         }
         
-        const player = this.getPlayer(i_Socket.id);
+        const player = this.getCurrentPlayer();
         player.increaseMovesCount(1);
         //add the cards to the cards the current player chose
         card.covered = false;
         this.m_chosenCards.push(card);
 
-        const currentSocketTurn = this.isMyTurn(i_Socket.id);   
+        const currentSocketTurn = player.turn;   
         let i_DisableBoard: boolean = false;
         const movesCount = player.MovesCount; 
         let cardsNotMatch: boolean = false;
@@ -61,21 +68,25 @@ class Game implements GameType {
             if(this.m_chosenCards[0].uncoverImage === this.m_chosenCards[1].uncoverImage)
             {
                 this.m_chosenCards = [];
-                this.playerGotPoint(i_Socket.id);
+                this.playerGotPoint(player.id);
             }
             else
             {
-                cardsNotMatch = true;
+                cardsNotMatch = true;           
                 i_DisableBoard = true;
             }                
         }
     
         if(this.isGameOver())  {
             i_DisableBoard = true;
-            
             setTimeout(() => {
                 this.gameOver();
             }, 1000); // Delay game over by 2 seconds, but after returning the result
+        }
+
+        if(this.AIOponnent)
+        {
+            (this.m_p2 as AIPlayerType).cardToRemember(card);
         }
 
         const result : MoveResult = {
@@ -85,12 +96,78 @@ class Game implements GameType {
             cardsNotMatch: cardsNotMatch,
             currentPlayerMovesCount: movesCount,
         }
-
         return result;
+    }
+
+    public AIMove() : MoveResult
+    {
+        //--------------------------------------need to complete-------------------------------------
+        if(this.m_AIOponnent)
+        {
+            if(this.m_p2.turn)
+            {
+                if (this.m_GameOver) {
+                    throw new Error("The game is over. No further moves are allowed.");
+                }
+        
+                if(this.m_chosenCards.length > 1)
+                {
+                    throw new Error("More than 2 cards were clicked");
+                }
+                
+                const cardsCoveredStatusArray: boolean[] = this.cards.map((card)=>card.covered);
+                let cardIndex: number = (this.m_p2 as AIPlayerType).move(this.m_cards);
+                
+                const moveResult:MoveResult = this.move(this.cards[cardIndex].id);
+                // console.log(`game.ts - ai move
+                //     cards not match = ${moveResult.cardsNotMatch}
+                //     `)
+                return moveResult
+            }
+            else{
+                throw new Error("Not AI turn now");
+            }
+        }
+        else{
+            throw new Error("No AI Player");
+        }
+    }
+
+    public hideCards() : MoveResult
+    {
+        if (this.m_GameOver) {
+            throw new Error("The game is over. No further moves are allowed.");
+        }
+
+        if(this.m_chosenCards.length != 2)
+        {
+            throw new Error(`Something wrong with the hidden cards amount - ${this.hideCards.length}`)
+        }
+        this.m_chosenCards[0].covered = true;
+        this.m_chosenCards[1].covered = true;
+        this.m_chosenCards = [];
+        const currentPlayer = this.p1.turn === true ? this.p1 : this.p2;
+        this.switchTurns();
+        const currentPlayerTurn = currentPlayer.turn;  
+        const i_DisableBoard: boolean = false;
+        const movesCount = currentPlayer.MovesCount;
+        const cardsNotMatch: boolean = false;
+        
+        const result : MoveResult = {
+            cards: this.cards,
+            currentPlayerTurn: currentPlayerTurn,
+            disableBoard: i_DisableBoard,
+            cardsNotMatch: cardsNotMatch,
+            currentPlayerMovesCount: movesCount
+        }
+
+        return result
+
     }
 
     private gameOver()
     {
+        console.log(`game.ts - game over`)
         this.onGameOver(this.id, this.winner(), this.getMaxFinalPoints(), this.getMaxFinalMovesNumber());
     }
 
@@ -127,37 +204,6 @@ class Game implements GameType {
     private playerGotPoint(i_PlayerId: string)
     {
         this.getPlayer(i_PlayerId).increasePoints(1);
-    }
-
-    public hideCards(i_Socket: Socket) : MoveResult
-    {
-        if (this.m_GameOver) {
-            throw new Error("The game is over. No further moves are allowed.");
-        }
-
-        if(this.m_chosenCards.length != 2)
-        {
-            throw new Error('Something wrong with the hidden cards amount - ' + this.hideCards.length)
-        }
-        this.m_chosenCards[0].covered = true;
-        this.m_chosenCards[1].covered = true;
-        this.m_chosenCards = [];
-        this.switchTurns();
-        const currentPlayerTurn = this.isMyTurn(i_Socket.id);  
-        const i_DisableBoard: boolean = false;
-        const movesCount = this.getPlayer(i_Socket.id).MovesCount;
-        const cardsNotMatch: boolean = false;
-        
-        const result : MoveResult = {
-            cards: this.cards,
-            currentPlayerTurn: currentPlayerTurn,
-            disableBoard: i_DisableBoard,
-            cardsNotMatch: cardsNotMatch,
-            currentPlayerMovesCount: movesCount
-        }
-
-        return result
-
     }
 
     private switchTurns()
@@ -239,6 +285,14 @@ class Game implements GameType {
 
     public get cards(): CardType[] {
         return this.m_cards;
+    }
+
+    public get AIOponnent(): boolean {
+        return this.m_AIOponnent;
+    }
+
+    public get gameIsOver(): boolean {
+        return this.m_GameOver;
     }
 }
 

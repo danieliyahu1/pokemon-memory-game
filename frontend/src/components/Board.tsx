@@ -7,7 +7,6 @@ type BoardProps = {
 };
 
 const Board = ({ i_ButtonOnClick, i_Cards} : BoardProps ) => {
-    console.log('board length and height is: ' + Math.ceil(Math.sqrt(i_Cards.length)));
     const nummColumns: number = Math.ceil(Math.sqrt(i_Cards.length));
     const columnSize: number = 30 * nummColumns;
     return (

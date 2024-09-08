@@ -13,12 +13,23 @@ class SocketEventHandler {
       gameManager.createPlayer(data.name, socket.id);
 
       if (gameManager.canCreateGame()) {
-        gameManager.createGame(socket);
+        gameManager.creatrGameOnline(socket);
         const game = gameManager.findGameByPlayerId(socket.id);
         this.io.in(game.id).emit("startGame");
       }
     });
 
+    socket.on("playAlone", (data) => {
+      gameManager.createPlayer(data.name, socket.id);
+      gameManager.createAIPlayer("Sai");
+
+      if (gameManager.canCreateGame()) {
+        gameManager.creatrGameAgainstAI(socket);
+        const game = gameManager.findGameByPlayerId(socket.id);
+        this.io.in(game.id).emit("startGame");
+      }
+    });
+    
     socket.on("initializeGameForUI", () => {
       const { result, game, eventToEmit } = gameManager.initializeGameForUI(socket);
 
@@ -42,12 +53,35 @@ class SocketEventHandler {
 
       if (moveResult.cardsNotMatch) {
         setTimeout(() => {
-            const { hideCardsResult, eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer} = gameManager.hideCards(socket);
+            const { hideCardsResult, eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer} = gameManager.hideCards(socket.id);
             socket.emit(eventToEmitForCurrentPlayer, { cards: hideCardsResult.cards, currentPlayerTurn: hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount });
             socket.broadcast.to(game.id).emit(eventToEmitForSecondPlayer, { cards: hideCardsResult.cards, currentPlayerTurn: !hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount });
-        }, 2000);
+            if(game.AIOponnent)
+            {
+                setTimeout(()=>{
+                  let endOfTurn: boolean = false;
+                  let gameOver = false;
+                  while(!gameOver && !endOfTurn)
+                  {
+                    //await new Promise(resolve => setTimeout(resolve, 2000));
+                    gameManager.AIMove(socket.id);
+                    const e = gameManager.AIMove(socket.id);
+                    endOfTurn = e.endOfTurn;
+                    gameOver = e.gameOver
+                  }  
+                  if(!gameOver)
+                  {                  
+                    setTimeout(()=>{
+                      const { hideCardsResult, eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer} = gameManager.hideCards(socket.id);
+                      socket.emit(eventToEmitForSecondPlayer, { cards: hideCardsResult.cards, currentPlayerTurn: !hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount });
+                    }, 4000);
+                  }                            
+              },2000)                                            
+            } 
+          }, 2000);
       }
     });
+
   }
 
   public gameOver(room: string, eventToEmit: string, i_WinnerName: string | undefined, i_Points: number, i_Moves: number) {

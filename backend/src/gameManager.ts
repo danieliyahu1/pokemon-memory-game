@@ -1,11 +1,12 @@
 import http from 'http';
 import { Socket, Server as SocketServer } from 'socket.io';
 import SocketEventHandler from './socketHandlers';
-import { GameManagerType, GameType, ImageItem, PlayerType, socketEventHandlerType } from './types';
+import { AIPlayerType, GameManagerType, GameType, ImageItem, PlayerType, socketEventHandlerType } from './types';
 import {Result, MoveResult } from './sharedTypes'
 import { v2 as cloudinary } from 'cloudinary';
 import Player from './player';
 import Game from './game';
+import AIPlayer from './AIPlayer';
 
 class GameManager implements GameManagerType{
     private static instance: GameManager;
@@ -101,14 +102,37 @@ class GameManager implements GameManagerType{
         this.playersWaitList.push(player);
     }
 
-    public createGame(i_Socket: Socket)
+    public createAIPlayer(i_Name: string)
+    {
+        let id: string = Math.floor(Math.random() * 1000).toString();
+
+        while(this.IsPlayerExist(id))
+        {
+            id = Math.floor(Math.random() * 1000).toString();
+        }
+
+        let player: AIPlayerType = new AIPlayer(i_Name, id);
+        this.playersWaitList.push(player);
+    }
+
+    public creatrGameAgainstAI(i_Socket: Socket)
+    {
+        this.createGame(i_Socket, this.playersWaitList[1], true);
+    }
+
+    public creatrGameOnline(i_Socket: Socket)
+    {
+        this.createGame(i_Socket, this.playersWaitList[1], false);
+    }
+
+    private createGame(i_Socket: Socket, i_Player: PlayerType | AIPlayerType, i_AIOponnent: boolean)
     {
         const p1 = this.playersWaitList[0];
-        const p2 = this.playersWaitList[1];
         const id = this.playersWaitList[0].id + "-" + this.playersWaitList[1].id;
         const cards = this.setAndGetCardsGame(this.cardImages, this.coverImages);
+        const AIOponnent: boolean = i_AIOponnent;
 
-        const game: GameType = new Game(p2, p1, id, cards, this.onGameOver.bind(this));
+        const game: GameType = new Game(p1, i_Player, id, cards, AIOponnent, this.onGameOver.bind(this));
 
         this.io.sockets.sockets.get(this.playersWaitList[0].id)?.join(game.id);
         i_Socket.join(game.id);
@@ -116,6 +140,7 @@ class GameManager implements GameManagerType{
         this.games.push(game);
         this.gameStarted.set(game,[false, false]);
         this.playersWaitList.splice(0,2);
+        console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
     }
 
     public findGameByPlayerId (i_id:string): GameType
@@ -143,11 +168,12 @@ class GameManager implements GameManagerType{
         try 
         {
             //board size is nXn
-            const boardSize: number = 4;
+            const boardSize: number = 3;
             const cardResult = await cloudinary.api.resources({
             type: 'upload',
             prefix: i_prefix,
-            max_results: ((boardSize*boardSize)/2)
+            max_results: ((boardSize*boardSize)/2),
+            random: true
           });
 
           return cardResult.resources.map((cloudinaryImage:any) => ({id:  Number(cloudinaryImage.asset_id), src: cloudinaryImage.secure_url} as ImageItem));          
@@ -231,16 +257,40 @@ class GameManager implements GameManagerType{
         const eventToEmitForCurrentPlayer: string = "myMove";
         const eventToEmitForSecondPlayer: string = "opponentMove";
         const game = this.findGameByPlayerId(i_Socket.id);
-        const moveResult = game.move(i_Socket, i_CardId);
+        const moveResult = game.move(i_CardId);
         return {moveResult: moveResult, game: game, eventToEmitForCurrentPlayer: eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer: eventToEmitForSecondPlayer};
     }
 
-    public hideCards(i_Socket: Socket): { hideCardsResult: MoveResult, game: GameType, eventToEmitForCurrentPlayer: string, eventToEmitForSecondPlayer: string }
+    public AIMove(i_PlayerId: string): {endOfTurn:boolean, gameOver:boolean}
+    {        
+        const eventToEmitForCurrentPlayer: string = "myMove";
+        const eventToEmitForSecondPlayer: string = "opponentMove";
+        const game = this.findGameByPlayerId(i_PlayerId);
+        const moveResult = game.AIMove();
+        //const socket = this.io.sockets.sockets.get(i_PlayerId);
+
+        this.io.to(game.id).emit(eventToEmitForSecondPlayer, { cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount });
+        //await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // if(!moveResult.cardsNotMatch)
+        // {
+        //     await new Promise(resolve => setTimeout(resolve, 2000));
+
+        //     return this.AIMove(i_PlayerId);
+        // }
+        // else
+        // {
+        //     return moveResult.cardsNotMatch;
+        // }           
+        return {endOfTurn: moveResult.cardsNotMatch, gameOver:game.gameIsOver}
+    }
+
+    public hideCards(i_Id: string): { hideCardsResult: MoveResult, game: GameType, eventToEmitForCurrentPlayer: string, eventToEmitForSecondPlayer: string }
     {
         const eventToEmitForCurrentPlayer: string = "hideCards";
         const eventToEmitForSecondPlayer: string = "hideCards";
-        const game = this.findGameByPlayerId(i_Socket.id);
-        const hideCardsResult: MoveResult = game.hideCards(i_Socket);
+        const game = this.findGameByPlayerId(i_Id);
+        const hideCardsResult: MoveResult = game.hideCards(); 
         return {hideCardsResult: hideCardsResult, game: game, eventToEmitForCurrentPlayer:eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer:eventToEmitForSecondPlayer};
     }
 
@@ -309,6 +359,8 @@ class GameManager implements GameManagerType{
     {
         //show toast of the winner
         //after 5 seconds redirect to landing page
+        console.log(`game manager.ts - game over`)
+
         const eventToEmit = 'gameOver';
         const winingMessage = `
             Game Over!

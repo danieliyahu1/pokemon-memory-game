@@ -27,7 +27,7 @@ import {PokemonMemoryPageProps} from '../App'
         };
       }, [socket]);
     
-    const handleSearchClick = () => {
+    const handlePlayOnlineClick = () => {
         const myName = inputNameRef.current?.value.trim();
         if(myName)
             {
@@ -39,6 +39,19 @@ import {PokemonMemoryPageProps} from '../App'
             setError('Name is required.');
         }
     };
+
+    const handlePlayAgaisntComputerClick = () => {
+      const myName = inputNameRef.current?.value.trim();
+      if(myName)
+          {
+            setLoading(true);
+            setError('');           
+            socket.emit("playAlone", {name:myName});
+          }
+      else{
+          setError('Name is required.');
+      }
+  };
 
   return (
     <div className="max-w-[860px] mx-auto py-10 flex flex-col items-center min-h-screen">
@@ -52,7 +65,9 @@ import {PokemonMemoryPageProps} from '../App'
         <input ref={inputNameRef} type="text" placeholder="Name" id="name" autoComplete="off" className={`border border-slate-300 mb-5 p-1 text-lg ${error ? 'border-red-500' : ''}`} />
         {error && <p className="text-red-500">{error}</p>} 
     
-        <button onClick={handleSearchClick} id="find" className="text-xl text-white bg-black px-3 py-1 rounded-md">Search for a player</button>
+        <button onClick={handlePlayOnlineClick} id="find" className="mb-2 text-xl text-white bg-black px-3 py-1 rounded-md">Play online</button>
+        <button onClick={handlePlayAgaisntComputerClick} id="find" className="text-xl text-white bg-black px-3 py-1 rounded-md">Agaisnt comuter</button>
+
         {loading && (
         <img id="loading" src={loadingGif} alt="Loading" className="w-[30px] mt-4" />
       )}
