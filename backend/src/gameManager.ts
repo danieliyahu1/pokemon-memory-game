@@ -166,21 +166,14 @@ class GameManager implements GameManagerType{
     {
         try 
         {
-            // const { resources } = await cloudinary.search
-            // .expression('folder:Pokemon-Cards')
-            // .execute();
-            // console.log(resources.length)
-
-            //board size is nXn
-            const boardSize: number = 2;
             const cardResult = await cloudinary.api.resources({
             type: 'upload',
             prefix: i_prefix,
-            max_results: ((boardSize*boardSize)/2),
-            random: true
+            random: true,
+            max_results: 1000
           });
-
-          return cardResult.resources.map((cloudinaryImage:any) => ({id:  Number(cloudinaryImage.asset_id), src: cloudinaryImage.secure_url} as ImageItem));          
+          const cards = cardResult.resources.map((cloudinaryImage:any) => ({id:  Number(cloudinaryImage.asset_id), src: cloudinaryImage.secure_url} as ImageItem));   
+          return cards;       
         } 
         catch (error) 
         {
@@ -192,14 +185,19 @@ class GameManager implements GameManagerType{
     {
         return i_ArrayToShuffle
         .sort(() => Math.random() - 0.5)
-        .map((card) => ({...card,id: Math.random()} as ImageItem))
+        .map((item) => ({...item,id: Math.random()}))
     }
 
     private setAndGetCardsGame(i_CardImages: ImageItem[], i_CoverImages: ImageItem[])
     {
+        //board size is nXn
+        const boardSize: number = 4;
+        const amountOfImagesForCards = ((boardSize*boardSize)/2);
+        const imagesForCUrrentCardsGame = this.shuffleArray(i_CardImages).slice(0, amountOfImagesForCards);
+
         const randomNumber = Math.floor(Math.random() * i_CoverImages.length);
             
-        let cards = i_CardImages.map((cloudinaryImage: ImageItem) => ({
+        let cards = imagesForCUrrentCardsGame.map((cloudinaryImage: ImageItem) => ({
             id: cloudinaryImage.id,
             coverImage:  i_CoverImages[randomNumber].src,
             uncoverImage:cloudinaryImage.src,
