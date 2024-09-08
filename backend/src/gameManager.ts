@@ -140,7 +140,6 @@ class GameManager implements GameManagerType{
         this.games.push(game);
         this.gameStarted.set(game,[false, false]);
         this.playersWaitList.splice(0,2);
-        console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
     }
 
     public findGameByPlayerId (i_id:string): GameType
@@ -168,7 +167,7 @@ class GameManager implements GameManagerType{
         try 
         {
             //board size is nXn
-            const boardSize: number = 3;
+            const boardSize: number = 4;
             const cardResult = await cloudinary.api.resources({
             type: 'upload',
             prefix: i_prefix,
@@ -267,21 +266,9 @@ class GameManager implements GameManagerType{
         const eventToEmitForSecondPlayer: string = "opponentMove";
         const game = this.findGameByPlayerId(i_PlayerId);
         const moveResult = game.AIMove();
-        //const socket = this.io.sockets.sockets.get(i_PlayerId);
 
         this.io.to(game.id).emit(eventToEmitForSecondPlayer, { cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount });
-        //await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // if(!moveResult.cardsNotMatch)
-        // {
-        //     await new Promise(resolve => setTimeout(resolve, 2000));
-
-        //     return this.AIMove(i_PlayerId);
-        // }
-        // else
-        // {
-        //     return moveResult.cardsNotMatch;
-        // }           
+                
         return {endOfTurn: moveResult.cardsNotMatch, gameOver:game.gameIsOver}
     }
 
@@ -359,7 +346,6 @@ class GameManager implements GameManagerType{
     {
         //show toast of the winner
         //after 5 seconds redirect to landing page
-        console.log(`game manager.ts - game over`)
 
         const eventToEmit = 'gameOver';
         const winingMessage = `

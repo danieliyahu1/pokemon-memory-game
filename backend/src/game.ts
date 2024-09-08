@@ -167,7 +167,6 @@ class Game implements GameType {
 
     private gameOver()
     {
-        console.log(`game.ts - game over`)
         this.onGameOver(this.id, this.winner(), this.getMaxFinalPoints(), this.getMaxFinalMovesNumber());
     }
 

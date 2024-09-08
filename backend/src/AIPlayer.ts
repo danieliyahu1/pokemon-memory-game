@@ -46,7 +46,7 @@ class AIPlayer extends Player implements AIPlayerType {
   public cardToRemember(i_Card: CardType)
   {
     this.m_CardsRemember.push(i_Card);
-    if(this.m_CardsRemember.length > 4)
+    if(this.m_CardsRemember.length > 3)
     {
       this.m_CardsRemember.shift();
     }
