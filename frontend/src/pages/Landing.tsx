@@ -2,11 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useSocketContext } from "../contexts/SocketContext";
 import loadingGif from '/gif/loading.gif';
 import {PokemonMemoryPageProps} from '../App'
-
-
-//import { shuffleCards } from "../components/GameManager";
-
-
   
   const Landing = ({ endPageFunction: onStartGame }: PokemonMemoryPageProps)=> {
 
@@ -19,7 +14,7 @@ import {PokemonMemoryPageProps} from '../App'
     useEffect(() => {
         // Event listener for when opponent data is received
         socket.on("startGame", () => {
-            onStartGame();
+            onStartGame();            
         });
 
         return () => {

@@ -36,9 +36,7 @@ class AIPlayer extends Player implements AIPlayerType {
     while(!i_Cards[cardIndex].covered)
     {
       cardIndex = Math.floor(Math.random() * i_Cards.length);
-    }
-    this.cardToRemember(i_Cards[cardIndex]);
-    
+    }    
     return cardIndex;
     // Add logic here for the computer player's move
   }
@@ -46,10 +44,16 @@ class AIPlayer extends Player implements AIPlayerType {
   public cardToRemember(i_Card: CardType)
   {
     this.m_CardsRemember.push(i_Card);
-    if(this.m_CardsRemember.length > 3)
+    if(this.m_CardsRemember.length > 8)
     {
       this.m_CardsRemember.shift();
     }
+    this.sawCard(i_Card);
+  }
+
+  private sawCard(i_Card: CardType)
+  {
+    this.m_CardsRemember.filter((card)=> i_Card.id === card.id);
   }
 
   private checkMatch(card: CardType | undefined)

@@ -166,8 +166,13 @@ class GameManager implements GameManagerType{
     {
         try 
         {
+            // const { resources } = await cloudinary.search
+            // .expression('folder:Pokemon-Cards')
+            // .execute();
+            // console.log(resources.length)
+
             //board size is nXn
-            const boardSize: number = 4;
+            const boardSize: number = 2;
             const cardResult = await cloudinary.api.resources({
             type: 'upload',
             prefix: i_prefix,

@@ -24,8 +24,7 @@ const GameScreen = ({ endPageFunction: gameOver }: PokemonMemoryPageProps) => {
 
         // Cleanup function to handle unmounting
         return () => {
-            socket.off("initializeGameForUI");
-            socket.off("getPlayersName");
+                      
         };
     }, []);
 
@@ -59,14 +58,20 @@ const GameScreen = ({ endPageFunction: gameOver }: PokemonMemoryPageProps) => {
             setCards(cards);
             setMyTurn(myTurn);
             setBoardDisable(disableBoard);
-            console.log(`
-                handle Hide Cards - game screen.tsx
-                my turn = ${myTurn}
-                board disable = ${disableBoard}
-                `)
         };
 
-        const handleGameOver = ({ i_WinnerName, i_Points, i_Moves }: { i_WinnerName: string | undefined , i_Points: number, i_Moves: number }) => {
+        const handleGameOver = ({ i_WinnerName, i_Points, i_Moves }: { i_WinnerName: string | undefined , i_Points: number, i_Moves: number }) => {        
+                // Redirect to the landing page after 5 seconds
+            
+            const timeoutId = setTimeout(() => {       
+                gameOver();                
+            }, toastTimeOnScreen+1000);
+
+            const handleStartNewGame = () => {
+                clearTimeout(timeoutId);
+                gameOver()
+            };
+
             const winingMessage = (
                 <div className="text-center text-white">
                     <p className="font-bold">Game Ended!</p>
@@ -74,20 +79,15 @@ const GameScreen = ({ endPageFunction: gameOver }: PokemonMemoryPageProps) => {
                     <p>Points: {i_Points}</p>
                     <p>Number of Moves: {i_Moves}</p>
                     <button
-                        onClick={gameOver}
+                        onClick={handleStartNewGame}
                         className="mt-4 px-4 py-2 bg-blue-500 text-white font-semibold rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
                     >Start New Game</button>
                 </div>
             );
-            
+
             // Show a toast notification with the winner's name
             toast(winingMessage);
-            setBoardDisable(true);            
-
-            // Redirect to the landing page after 5 seconds
-            setTimeout(() => {
-                gameOver();
-            }, toastTimeOnScreen);
+            setBoardDisable(true);
         };
 
         socket.on("initializeGameForUI", initializeGameForUI );
@@ -98,18 +98,23 @@ const GameScreen = ({ endPageFunction: gameOver }: PokemonMemoryPageProps) => {
         socket.on('gameOver', handleGameOver);
 
         return () => {
-            socket.off("initializeGameForUI");
-            socket.off('setPlayersName')
-            socket.off("myMove");
-            socket.off("opponentMove");
-            socket.off('hideCards');
-            socket.off('gameOver');
+            turnOffSocket();            
         };
         
       }, [socket]);
 
     const handleMove = (i_CardId: number) => {
         socket.emit("move", i_CardId);
+    }
+
+    const turnOffSocket = () => 
+    {
+        socket.off("initializeGameForUI");
+        socket.off('setPlayersName')
+        socket.off("myMove");
+        socket.off("opponentMove");
+        socket.off('hideCards');
+        socket.off('gameOver');
     }
 
     return(
@@ -121,6 +126,7 @@ const GameScreen = ({ endPageFunction: gameOver }: PokemonMemoryPageProps) => {
                 playerTurns={playerTurns}
                 opponentTurns={opponentTurns}
             />
+
             <ToastContainer                
                 position="top-center"
                 autoClose={toastTimeOnScreen}
@@ -129,8 +135,9 @@ const GameScreen = ({ endPageFunction: gameOver }: PokemonMemoryPageProps) => {
                 pauseOnHover={false}
                 theme="dark"
                 transition= {Zoom}
-                
+                closeButton={false}
             />
+
             <div className="bg-gray-800 flex-grow flex items-center justify-center"
                 style={{
                     cursor: (!myTurn || disableBoard) ? 'wait' : 'default',
