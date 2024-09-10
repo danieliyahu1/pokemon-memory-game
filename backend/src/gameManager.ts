@@ -241,7 +241,7 @@ class GameManager implements GameManagerType{
     private setAndGetCardsGame(i_CardImages: ImageItem[], i_CoverImages: ImageItem[])
     {
         //board size is nXn
-        const boardSize: number = 2;
+        const boardSize: number = 4;
         const amountOfImagesForCards = ((boardSize*boardSize)/2);
         const imagesForCUrrentCardsGame = this.shuffleArray(i_CardImages).slice(0, amountOfImagesForCards);
 
