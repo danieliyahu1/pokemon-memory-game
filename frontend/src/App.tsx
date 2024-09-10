@@ -8,23 +8,27 @@ import {
 import GameScreen from './pages/GameScreen';
 
 export type PokemonMemoryPageProps = {
-  endPageFunction: () => void;
+  endPageFunction: (playerName: string) => void;
+  playerName: string;
 }
 
 function App() {
   const [showGame, setShowGame] = useState<boolean>(false);
-  const handleStartGame = () => {
+  const [playerName, setPlayerName] = useState<string>("");
+  const handleStartGame = (i_PlayerName: string) => {
     setShowGame(true);
+    setPlayerName(i_PlayerName);
   };
-  const handleGameOver = () => {
+  const handleGameOver = (i_PlayerName: string) => {
     setShowGame(false);
+    setPlayerName(i_PlayerName);
   };
   return (
     <div  className="bg-gray-800 min-h-screen">
       <Router>
         <Routes>
             <Route path="/" element={
-              showGame ? <GameScreen endPageFunction={handleGameOver}/>: <Landing endPageFunction={handleStartGame}/>}/>
+              showGame ? <GameScreen playerName={playerName} endPageFunction={(playerName)=>handleGameOver(playerName)}/>: <Landing playerName={playerName} endPageFunction={(playerName)=>handleStartGame(playerName)}/>}/>
         </Routes>        
       </Router>
       

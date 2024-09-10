@@ -8,6 +8,7 @@ export type CardType = {
 export type Result = {
     cards: CardType[],
     currentPlayerTurn: boolean,
+    audioUrl: string,
 }
 
 export type MoveResult = Result & {

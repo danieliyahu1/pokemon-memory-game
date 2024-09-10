@@ -18,6 +18,7 @@ class GameManager implements GameManagerType{
     private coverImages: ImageItem[];
     private gameStarted = new Map<GameType, boolean[]>();
     private socketEventHandler: socketEventHandlerType;
+    private audios: Map<string, string>;
 
 
     //cards should be in a game not game manager
@@ -45,6 +46,7 @@ class GameManager implements GameManagerType{
         this.coverImages = [];
         this.gameStarted = new Map<GameType, boolean[]>();
         this.socketEventHandler = new SocketEventHandler(this.io);
+        this.audios = new Map<string,string>();
        
         // Initialize the game
         this.initialize();
@@ -71,6 +73,7 @@ class GameManager implements GameManagerType{
          // Fetch images when server starts
          this.cardImages = await this.fetchImagesFromCloudinary('card_pokemon');
          this.coverImages = await this.fetchImagesFromCloudinary('cover_pokemon');
+         this.audios = await this.featchAudios();
 
          // Initialize shutdown handlers
         await this.handleExit();
@@ -81,11 +84,16 @@ class GameManager implements GameManagerType{
 
             socket.on("disconnect", () => {
                 console.log(`Client disconnected: ${socket.id}`);
-
+                
+                const game: GameType = this.games.filter(game => game.p1.id === socket.id || game.p2.id === socket.id)[0];
+                if(game)
+                {
+                    // Handle player disconnection if needed
+                    this.io.to(game.id).emit("opponentDisconnected", {i_Sound: this.audios.get('draw')});
+                    this.gameStarted.delete(game);
+                    this.games = this.games.filter(game => game.p1.id !== socket.id && game.p2.id !== socket.id);                
+                }
                 socket.removeAllListeners();
-                // Handle player disconnection if needed
-                this.playersWaitList = this.playersWaitList.filter(player => player.id !== socket.id);
-                this.games = this.games.filter(game => game.p1.id !== socket.id && game.p2.id !== socket.id);
                 //I should let the other palyer know that the game ended
             });
         });
@@ -132,7 +140,7 @@ class GameManager implements GameManagerType{
         const cards = this.setAndGetCardsGame(this.cardImages, this.coverImages);
         const AIOponnent: boolean = i_AIOponnent;
 
-        const game: GameType = new Game(p1, i_Player, id, cards, AIOponnent, this.onGameOver.bind(this));
+        const game: GameType = new Game(p1, i_Player, id, cards, AIOponnent, this.audios, this.onGameOver.bind(this));
 
         this.io.sockets.sockets.get(this.playersWaitList[0].id)?.join(game.id);
         i_Socket.join(game.id);
@@ -162,17 +170,58 @@ class GameManager implements GameManagerType{
         return this.playersWaitList.length >= 2;
     }
 
+    private async featchAudios(): Promise<Map<string, string>>
+    {
+        const audioMap = new Map<string, string>();
+        try
+        {
+            const audioNames: string[] = ['audio_effect_card_flipped', 'audio_effect_cards_match', 'audio_effect_player_lost',
+                'audio_effect_player_won', 'audio_effect_unmatch_cards','audio_effect_start_game', 'audio_effect_draw'
+            ];
+            for (const audioName of audioNames) {
+                const audioUrl = await this.fetchAudioFromCloudinary(audioName);
+                const shortName = audioName.replace('audio_effect_','');
+                audioMap.set(shortName, audioUrl);
+            }            
+            return audioMap;
+
+        }
+        catch(error)
+        {
+            throw new Error('Failed to get the images');
+        }
+    }
+
+    private async fetchAudioFromCloudinary (i_prefix: string): Promise<string>
+    {
+        try
+        {
+            const audioResult = await cloudinary.api.resources({
+                type: 'upload',
+                prefix: i_prefix,
+                resource_type: 'video', // Use 'video' for audio files
+              });
+
+              return audioResult.resources[0].secure_url;
+        }
+        catch(error)
+        {
+            throw new Error("Failed fetch audio from cloudinary");
+        }
+    }
+
     private async fetchImagesFromCloudinary (i_prefix: string): Promise<ImageItem[]>
     {
         try 
         {
-            const cardResult = await cloudinary.api.resources({
+            const cardImagesResult = await cloudinary.api.resources({
             type: 'upload',
             prefix: i_prefix,
             random: true,
             max_results: 1000
           });
-          const cards = cardResult.resources.map((cloudinaryImage:any) => ({id:  Number(cloudinaryImage.asset_id), src: cloudinaryImage.secure_url} as ImageItem));   
+
+          const cards = cardImagesResult.resources.map((cloudinaryImage:any) => ({id:  Number(cloudinaryImage.asset_id), src: cloudinaryImage.secure_url} as ImageItem));   
           return cards;       
         } 
         catch (error) 
@@ -203,8 +252,17 @@ class GameManager implements GameManagerType{
             uncoverImage:cloudinaryImage.src,
             covered: true
         }))
+        const firstSet = cards.map(card => ({
+            ...card,
+            id: card.id+1
+          }));
 
-        cards = [...cards, ...cards];
+          const secondSet = cards.map(card => ({
+            ...card,
+            id: card.id+2
+          }));
+
+        cards = [...firstSet, ...secondSet];
         return this.shuffleArray(cards);
     }
 
@@ -263,15 +321,14 @@ class GameManager implements GameManagerType{
         return {moveResult: moveResult, game: game, eventToEmitForCurrentPlayer: eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer: eventToEmitForSecondPlayer};
     }
 
-    public AIMove(i_PlayerId: string): {endOfTurn:boolean, gameOver:boolean}
-    {        
+    public async AIMove(i_PlayerId: string): Promise<{endOfTurn: boolean, gameOver: boolean}>
+    {
         const eventToEmitForCurrentPlayer: string = "myMove";
         const eventToEmitForSecondPlayer: string = "opponentMove";
         const game = this.findGameByPlayerId(i_PlayerId);
         const moveResult = game.AIMove();
+        this.io.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: moveResult.audioUrl, cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount });
 
-        this.io.to(game.id).emit(eventToEmitForSecondPlayer, { cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount });
-                
         return {endOfTurn: moveResult.cardsNotMatch, gameOver:game.gameIsOver}
     }
 
@@ -293,6 +350,8 @@ class GameManager implements GameManagerType{
             console.log(`Disconnecting client: ${socket.id}`);
             socket.disconnect(true); // Immediately disconnect the client
         });
+        this.gameStarted.clear();
+        this.games.length = 0;
 
         // Close the server and stop accepting new connections
         this.server.close((err) => {
@@ -357,8 +416,19 @@ class GameManager implements GameManagerType{
             Ponits: ${i_Points}
             number of moves: ${i_Moves}
         `;
+        
+        this.gameStarted.delete(this.games.filter(game => game.id === i_GameId)[0]);
         this.games = this.games.filter(game => game.id !== i_GameId);
-        this.socketEventHandler.gameOver(i_GameId, eventToEmit, i_Winner? i_Winner.name: undefined, i_Points, i_Moves);
+
+        const winingAudio: string | undefined = this.audios.get('player_won');
+        const losingAudio: string | undefined = this.audios.get('player_lost');
+        const drawAudio: string | undefined = this.audios.get('draw');
+        if(winingAudio === undefined || losingAudio === undefined || drawAudio === undefined)
+        {
+            throw new Error('No such audio');
+        }
+        const audios: string[] = [winingAudio, losingAudio, drawAudio];
+        this.socketEventHandler.gameOver(i_GameId, eventToEmit, i_Winner? i_Winner.name: undefined, i_Points, i_Moves, audios);
     }
 
 }

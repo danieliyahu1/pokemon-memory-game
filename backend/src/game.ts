@@ -8,12 +8,13 @@ class Game implements GameType {
     private m_p2: PlayerType | AIPlayerType;
     private m_id: string;
     private m_cards: CardType[];
+    private m_Audios: Map<string, string>;
     private m_chosenCards: CardType[];
     private m_GameOver: boolean;
     private m_AIOponnent: boolean;
     private onGameOver: (i_GameId: string, i_Winner: PlayerType | undefined, i_Points: number, i_Moves: number) => void;
 
-    constructor(p1: PlayerType, p2: PlayerType | AIPlayerType, id: string, cards: CardType[], AIOponnent: boolean, onGameOver: (i_GameId: string, i_Winner: PlayerType | undefined, i_Points: number, i_Moves: number) => void) {
+    constructor(p1: PlayerType, p2: PlayerType | AIPlayerType, id: string, cards: CardType[], AIOponnent: boolean, audios: Map<string, string>, onGameOver: (i_GameId: string, i_Winner: PlayerType | undefined, i_Points: number, i_Moves: number) => void) {
         this.m_p1 = p1;
         this.m_p2 = p2;
         this.m_id = id;
@@ -23,6 +24,7 @@ class Game implements GameType {
         this.onGameOver = onGameOver;
         this.m_GameOver = false;
         this.m_AIOponnent = AIOponnent;
+        this.m_Audios = audios;
     }
 
     private getCurrentPlayer(): PlayerType | AIPlayerType
@@ -62,6 +64,7 @@ class Game implements GameType {
         let i_DisableBoard: boolean = false;
         const movesCount = player.MovesCount; 
         let cardsNotMatch: boolean = false;
+        let soundEffect = this.m_Audios.get('card_flipped');
 
         if(this.m_chosenCards.length == 2)
         {
@@ -69,16 +72,19 @@ class Game implements GameType {
             {
                 this.m_chosenCards = [];
                 this.playerGotPoint(player.id);
+                soundEffect = this.m_Audios.get('cards_match');
             }
             else
             {
                 cardsNotMatch = true;           
                 i_DisableBoard = true;
+                soundEffect = this.m_Audios.get('unmatch_cards');
             }                
         }
     
         if(this.isGameOver())  {
             i_DisableBoard = true;
+            //soundEffect = this.m_Audios.get('player_won');
             setTimeout(() => {
                 this.gameOver();
             }, 1000); // Delay game over by 2 seconds, but after returning the result
@@ -89,12 +95,18 @@ class Game implements GameType {
             (this.m_p2 as AIPlayerType).cardToRemember(card);
         }
 
+        if(soundEffect === undefined)
+        {
+            throw new Error(`No such sound effect`);
+        }
+
         const result : MoveResult = {
             cards: this.cards,
             currentPlayerTurn: currentSocketTurn,
             disableBoard: i_DisableBoard,
             cardsNotMatch: cardsNotMatch,
             currentPlayerMovesCount: movesCount,
+            audioUrl: soundEffect,
         }
         return result;
     }
@@ -119,9 +131,6 @@ class Game implements GameType {
                 let cardIndex: number = (this.m_p2 as AIPlayerType).move(this.m_cards);
                 
                 const moveResult:MoveResult = this.move(this.cards[cardIndex].id);
-                // console.log(`game.ts - ai move
-                //     cards not match = ${moveResult.cardsNotMatch}
-                //     `)
                 return moveResult
             }
             else{
@@ -152,13 +161,19 @@ class Game implements GameType {
         const i_DisableBoard: boolean = false;
         const movesCount = currentPlayer.MovesCount;
         const cardsNotMatch: boolean = false;
+        const soundEffect: string | undefined = this.m_Audios.get('card_flipped');
+        if(soundEffect === undefined)
+        {
+            throw new Error(`No such sound effect`);
+        }
         
         const result : MoveResult = {
             cards: this.cards,
             currentPlayerTurn: currentPlayerTurn,
             disableBoard: i_DisableBoard,
             cardsNotMatch: cardsNotMatch,
-            currentPlayerMovesCount: movesCount
+            currentPlayerMovesCount: movesCount,
+            audioUrl: soundEffect
         }
 
         return result
@@ -218,11 +233,17 @@ class Game implements GameType {
         }
 
         const myTurn = this.isMyTurn(i_Socket.id);
+        const soundEffect: string | undefined = this.m_Audios.get('start_game');
+        if(soundEffect === undefined)
+        {
+            throw new Error(`No such sound effect`);
+        }
 
         const result = {
             game: this,
             cards: this.cards,
             currentPlayerTurn: myTurn,
+            audioUrl: soundEffect
         }
 
         return result;

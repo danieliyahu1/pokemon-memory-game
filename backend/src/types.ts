@@ -13,14 +13,14 @@ export type GameManagerType = {
     initializeGameForUI(i_Socket: Socket) : { result: Result, game: GameType, eventToEmit: string };
     getPlayersName(i_PlayerId: string) : {myName: string, opponentName: string, eventToEmit: string};
     move(i_Socket: Socket, i_CardId: number) : { moveResult: MoveResult, game: GameType, eventToEmitForCurrentPlayer: string, eventToEmitForSecondPlayer: string };
-    AIMove(i_PlayerId: string): {endOfTurn:boolean, gameOver:boolean};
+    AIMove(i_PlayerId: string): Promise<{endOfTurn: boolean, gameOver: boolean}>;
     hideCards(i_Id: string): { hideCardsResult: MoveResult, game: GameType, eventToEmitForCurrentPlayer: string, eventToEmitForSecondPlayer: string };
     findGameByPlayerId (i_id:string): GameType;
 };
 
 export type socketEventHandlerType = {
     listenToEvents(socket: Socket, gameManager: GameManagerType): void;
-    gameOver(room: string, eventToEmit: string, i_WinnerName: string | undefined, i_Points: number, i_Moves: number): void;
+    gameOver(room: string, eventToEmit: string, i_WinnerName: string | undefined, i_Points: number, i_Moves: number, audios: string[]): void;
 }
 
 export type GameType = {
