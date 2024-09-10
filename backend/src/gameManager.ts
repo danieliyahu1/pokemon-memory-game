@@ -93,6 +93,7 @@ class GameManager implements GameManagerType{
                     this.gameStarted.delete(game);
                     this.games = this.games.filter(game => game.p1.id !== socket.id && game.p2.id !== socket.id);                
                 }
+                this.playersWaitList = this.playersWaitList.filter(player=> player.id !== socket.id);
                 socket.removeAllListeners();
                 //I should let the other palyer know that the game ended
             });
@@ -240,7 +241,7 @@ class GameManager implements GameManagerType{
     private setAndGetCardsGame(i_CardImages: ImageItem[], i_CoverImages: ImageItem[])
     {
         //board size is nXn
-        const boardSize: number = 4;
+        const boardSize: number = 2;
         const amountOfImagesForCards = ((boardSize*boardSize)/2);
         const imagesForCUrrentCardsGame = this.shuffleArray(i_CardImages).slice(0, amountOfImagesForCards);
 
