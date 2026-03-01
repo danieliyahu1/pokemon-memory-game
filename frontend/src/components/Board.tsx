@@ -11,11 +11,11 @@ const Board = ({ i_ButtonOnClick, i_Cards} : BoardProps ) => {
     const columnSize: number = 30 * nummColumns;
     return (
         <div
-        className={`h-${columnSize.toString()} w-${columnSize.toString()} flex-shrink-0 p-3 bg-gray-900 rounded-lg border border-gray-400 grid`}
+        className={`h-${columnSize.toString()} w-${columnSize.toString()} flex-shrink-0 p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-xl border-2 border-gray-600 grid shadow-2xl`}
         style={{
             gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(i_Cards.length))}, minmax(0, 1fr))`,
             gridAutoRows: "minmax(100px, auto)",
-            gap: "0.5rem",
+            gap: "1rem",
         }}
         >            {i_Cards.map(card => (
                 <Card onClick={card.covered ? i_ButtonOnClick : undefined} key={card.id} src={card.covered ? card.coverImage : card.uncoverImage} id={card.id} />

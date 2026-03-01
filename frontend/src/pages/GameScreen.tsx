@@ -3,6 +3,7 @@ import { useSocketContext } from "../contexts/SocketContext";
 import Board from "../components/Board";
 import {Result, MoveResult, CardType } from '../../../backend/src/sharedTypes';
 import GameHeader from "../components/Header";
+import PointsAnimation from "../components/PointsAnimation";
 import {toast, ToastContainer, Zoom} from 'react-toastify';
 import {PokemonMemoryPageProps} from '../App'
 import 'react-toastify/dist/ReactToastify.css';
@@ -16,6 +17,10 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
     const [playerPoints, setPlayerPoints] = useState<number>(0);
     const [opponentPoints, setOpponentPoints] = useState<number>(0);
     const [opponentName, setOpponentName] = useState<string>("");
+    const [showPlayerPointsAnimation, setShowPlayerPointsAnimation] = useState<boolean>(false);
+    const [showOpponentPointsAnimation, setShowOpponentPointsAnimation] = useState<boolean>(false);
+    const [prevPlayerPoints, setPrevPlayerPoints] = useState<number>(0);
+    const [prevOpponentPoints, setPrevOpponentPoints] = useState<number>(0);
     const toastTimeOnScreen = 15000;
     const socketContext = useSocketContext();
     const socket = socketContext.socket;
@@ -31,6 +36,22 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
                       
         };
     }, []);
+
+    // Detect when player scores
+    useEffect(() => {
+        if (playerPoints > prevPlayerPoints) {
+            setShowPlayerPointsAnimation(true);
+            setPrevPlayerPoints(playerPoints);
+        }
+    }, [playerPoints, prevPlayerPoints]);
+
+    // Detect when opponent scores
+    useEffect(() => {
+        if (opponentPoints > prevOpponentPoints) {
+            setShowOpponentPointsAnimation(true);
+            setPrevOpponentPoints(opponentPoints);
+        }
+    }, [opponentPoints, prevOpponentPoints]);
 
     useEffect(() => {
 
@@ -212,7 +233,7 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
     }
 
     return(
-        <div className="flex flex-col h-screen">
+        <div className="flex flex-col h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
             <GameHeader
                 gameName="Pokemon Memory Game"
                 opponentName={opponentName}
@@ -221,6 +242,15 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
                 opponentTurns={opponentTurns}
                 playerPoints={playerPoints}
                 opponentPoints={opponentPoints}
+            />
+
+            <PointsAnimation 
+                show={showPlayerPointsAnimation} 
+                position="left"
+            />
+            <PointsAnimation 
+                show={showOpponentPointsAnimation} 
+                position="right"
             />
 
             <ToastContainer                
@@ -234,7 +264,7 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
                 closeButton={false}
             />
 
-            <div className="bg-gray-800 flex-grow flex items-center justify-center"
+            <div className="bg-gradient-to-b from-gray-800 to-gray-900 flex-grow flex items-center justify-center transition-all duration-300"
                 style={{
                     cursor: (!myTurn || disableBoard) ? 'wait' : 'default',
                     pointerEvents: !myTurn || disableBoard ? 'none' : 'auto',    

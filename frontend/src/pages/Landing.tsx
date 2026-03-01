@@ -69,7 +69,7 @@ import {PokemonMemoryPageProps} from '../App'
         { playerName !== "" ? <span className="my-5 text-white text-xl mb-4">{`Let's go again ${playerName}!`}</span> : 
         <>
           <p id="enterName" className="my-5 text-white text-xl mb-4">Enter your name</p>
-          <input ref={inputNameRef} type="text" placeholder="Name" id="name" autoComplete="off" className={`border border-slate-300 mb-5 p-1 text-lg ${error ? 'border-red-500' : ''}`} />
+          <input ref={inputNameRef} type="text" placeholder="Name" id="name" autoComplete="off" className={`border-2 border-slate-300 mb-5 p-3 text-lg text-black bg-white rounded-md focus:outline-none focus:border-blue-500 ${error ? 'border-red-500' : ''}`} />
         </>}
 
         {error && <p className="text-red-500">{error}</p>} 

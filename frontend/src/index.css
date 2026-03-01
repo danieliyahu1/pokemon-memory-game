@@ -1,3 +1,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global styles for better UX */
+* {
+  @apply transition-colors duration-200;
+}
+
+body {
+  background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+  color: #f3f4f6;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Input and button base styles */
+input, button {
+  @apply rounded-lg;
+}
+
+button {
+  @apply font-semibold transition-all duration-300;
+}
+
+button:hover {
+  @apply transform hover:scale-105;
+}
+
+button:active {
+  @apply transform scale-95;
+}
