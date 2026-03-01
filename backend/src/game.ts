@@ -116,7 +116,6 @@ class Game implements GameType {
 
     public AIMove() : MoveResult
     {
-        //--------------------------------------need to complete-------------------------------------
         if(this.m_AIOponnent)
         {
             if(this.m_p2.turn)
@@ -129,11 +128,16 @@ class Game implements GameType {
                 {
                     throw new Error("More than 2 cards were clicked");
                 }
-                
-                const cardsCoveredStatusArray: boolean[] = this.cards.map((card)=>card.covered);
-                let cardIndex: number = (this.m_p2 as AIPlayerType).move(this.m_cards);
-                
-                const moveResult:MoveResult = this.move(this.cards[cardIndex].id);
+
+                const cardIndex: number = (this.m_p2 as AIPlayerType).move(this.m_cards);
+                const selectedCard = this.cards[cardIndex];
+
+                if(selectedCard === undefined || !selectedCard.covered)
+                {
+                    throw new Error("AI selected invalid card");
+                }
+
+                const moveResult: MoveResult = this.move(selectedCard.id);
                 return moveResult
             }
             else{

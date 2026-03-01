@@ -29,7 +29,7 @@ class AIPlayer extends Player implements AIPlayerType {
       }
     }
 
-    if(cardId === -1)
+    if(cardIndex === -1)
     {
       cardIndex = Math.floor(Math.random() * i_Cards.length);
       while(!i_Cards[cardIndex].covered)

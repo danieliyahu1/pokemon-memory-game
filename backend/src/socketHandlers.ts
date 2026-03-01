@@ -34,6 +34,10 @@ class SocketEventHandler {
 
       if (eventToEmit !== 'ignore') {
         socket.emit(eventToEmit, { audioUrl: result.audioUrl,cards: result.cards, currentPlayerTurn: result.currentPlayerTurn });
+
+        if (game.AIOponnent && !result.currentPlayerTurn) {
+          this.runAITurn(socket, gameManager, 1000);
+        }
       }
     });
 
@@ -55,32 +59,39 @@ class SocketEventHandler {
             const { hideCardsResult, eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer} = gameManager.hideCards(socket.id);
             socket.emit(eventToEmitForCurrentPlayer, {audioUrl: hideCardsResult.audioUrl, cards: hideCardsResult.cards, currentPlayerTurn: hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount });
             socket.broadcast.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: hideCardsResult.audioUrl, cards: hideCardsResult.cards, currentPlayerTurn: !hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount });
-            if(game.AIOponnent)
-            {
-                setTimeout(async ()=>{
-                  let endOfTurn: boolean = false;
-                  let gameOver = false;
-                  while(!gameOver && !endOfTurn)
-                  {
-                    //await new Promise(resolve => setTimeout(resolve, 2000));
-                    gameManager.AIMove(socket.id);
-                    const e = await gameManager.AIMove(socket.id);
-                    endOfTurn = e.endOfTurn;
-                    gameOver = e.gameOver
-                  }  
-                  if(!gameOver)
-                  {                  
-                    setTimeout(()=>{
-                      const { hideCardsResult, eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer} = gameManager.hideCards(socket.id);
-                      socket.emit(eventToEmitForSecondPlayer, {audioUrl: hideCardsResult.audioUrl, cards: hideCardsResult.cards, currentPlayerTurn: !hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount });
-                    }, 4000);
-                  }                            
-              },2000)                                            
-            } 
+            if (game.AIOponnent) {
+              this.runAITurn(socket, gameManager, 2000);
+            }
           }, 2000);
       }
     });
 
+  }
+
+  private runAITurn(socket: Socket, gameManager: GameManagerType, delayMs: number) {
+    setTimeout(async () => {
+      let endOfTurn = false;
+      let gameOver = false;
+
+      while (!gameOver && !endOfTurn) {
+        const aiMoveResult = await gameManager.AIMove(socket.id);
+        endOfTurn = aiMoveResult.endOfTurn;
+        gameOver = aiMoveResult.gameOver;
+      }
+
+      if (!gameOver) {
+        setTimeout(() => {
+          const { hideCardsResult, eventToEmitForSecondPlayer } = gameManager.hideCards(socket.id);
+          socket.emit(eventToEmitForSecondPlayer, {
+            audioUrl: hideCardsResult.audioUrl,
+            cards: hideCardsResult.cards,
+            currentPlayerTurn: !hideCardsResult.currentPlayerTurn,
+            disableBoard: hideCardsResult.disableBoard,
+            currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount
+          });
+        }, 4000);
+      }
+    }, delayMs);
   }
 
   public gameOver(room: string, eventToEmit: string, i_WinnerName: string | undefined, i_Points: number, i_Moves: number, audios: string[]) {

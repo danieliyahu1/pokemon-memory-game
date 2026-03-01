@@ -8,33 +8,34 @@ import {PokemonMemoryPageProps} from '../App'
     const [error, setError] = useState<string>(''); // Add state for validation message
     const [loading, setLoading] = useState(false);
     const inputNameRef = useRef<HTMLInputElement>(null);
+    const myNameRef = useRef<string | undefined>(undefined);
     const socketContext = useSocketContext();
     const socket = socketContext.socket;
-    let myName: string | undefined;
 
     useEffect(() => {
         // Event listener for when opponent data is received
         socket.on("startGame", () => {
-          if(myName === undefined)
+          if(myNameRef.current === undefined)
           {
             throw new Error("Can not start game without a player name");
           }
           console.log("start game.tsx")
-            onStartGame(myName);            
+            onStartGame(myNameRef.current);            
         });
 
         return () => {
           socket.off("startGame");
         };
-      }, [socket]);
+      }, [socket, onStartGame]);
     
     const handlePlayOnlineClick = () => {
-      myName = inputNameRef.current?.value.trim() || playerName;
-      if(myName)
+      const name = inputNameRef.current?.value.trim() || playerName;
+      if(name)
       {
+        myNameRef.current = name;
         setLoading(true);
         setError('');           
-        socket.emit("find", {name:myName});
+        socket.emit("find", {name: name});
       }
       else
       {
@@ -43,12 +44,13 @@ import {PokemonMemoryPageProps} from '../App'
     };
 
     const handlePlayAgaisntComputerClick = () => {
-      myName = inputNameRef.current?.value.trim() || playerName;
-      if(myName)
+      const name = inputNameRef.current?.value.trim() || playerName;
+      if(name)
       {
+        myNameRef.current = name;
         setLoading(true);
         setError('');  
-        socket.emit("playAlone", {name:myName});
+        socket.emit("playAlone", {name: name});
       }
       else
       {

@@ -182,6 +182,11 @@ class GameManager implements GameManagerType{
             for (const audioName of audioNames) {
                 const audioUrl = await this.fetchAudioFromCloudinary(audioName);
                 const shortName = audioName.replace('audio_effect_','');
+                    if(this.cardImages.length === 0 || this.coverImages.length === 0)
+                    {
+                        console.error(`Cloudinary assets missing. card_pokemon=${this.cardImages.length}, cover_pokemon=${this.coverImages.length}`);
+                        throw new Error("Missing Cloudinary images");
+                    }
                 audioMap.set(shortName, audioUrl);
             }            
             return audioMap;
@@ -222,48 +227,64 @@ class GameManager implements GameManagerType{
             max_results: 1000
           });
 
-          const cards = cardImagesResult.resources.map((cloudinaryImage:any) => ({id:  Number(cloudinaryImage.asset_id), src: cloudinaryImage.secure_url} as ImageItem));   
-          return cards;       
+                    const cards = cardImagesResult.resources.map((cloudinaryImage:any) => ({id:  Number(cloudinaryImage.asset_id), src: cloudinaryImage.secure_url} as ImageItem));
+                    if(cards.length === 0)
+                    {
+                        console.error(`No images found in Cloudinary for prefix: ${i_prefix}`);
+                        throw new Error("Failed fetch images from cloudinary");
+                    }
+                    return cards;
         } 
         catch (error) 
         {
+                        console.error(`Failed to fetch images from Cloudinary for prefix: ${i_prefix}`, error);
             throw new Error("Failed fetch images from cloudinary");
         }
     }
 
     private shuffleArray (i_ArrayToShuffle: any[]) : any[] 
     {
-        return i_ArrayToShuffle
-        .sort(() => Math.random() - 0.5)
-        .map((item) => ({...item,id: Math.random()}))
+        // Fisher-Yates shuffle algorithm for proper randomization
+        const shuffled = [...i_ArrayToShuffle];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
     }
 
     private setAndGetCardsGame(i_CardImages: ImageItem[], i_CoverImages: ImageItem[])
     {
+        if(i_CardImages.length === 0 || i_CoverImages.length === 0)
+        {
+            console.error(`Cannot create game without Cloudinary images. cards=${i_CardImages.length}, covers=${i_CoverImages.length}`);
+            throw new Error("Missing Cloudinary images");
+        }
         //board size is nXn
         const boardSize: number = 4;
         const amountOfImagesForCards = ((boardSize*boardSize)/2);
         const imagesForCUrrentCardsGame = this.shuffleArray(i_CardImages).slice(0, amountOfImagesForCards);
 
         const randomNumber = Math.floor(Math.random() * i_CoverImages.length);
-            
-        let cards = imagesForCUrrentCardsGame.map((cloudinaryImage: ImageItem) => ({
-            id: cloudinaryImage.id,
-            coverImage:  i_CoverImages[randomNumber].src,
-            uncoverImage:cloudinaryImage.src,
-            covered: true
-        }))
-        const firstSet = cards.map(card => ({
-            ...card,
-            id: card.id+1
-          }));
 
-          const secondSet = cards.map(card => ({
-            ...card,
-            id: card.id+2
-          }));
+        const duplicatedCards = imagesForCUrrentCardsGame.flatMap((cloudinaryImage: ImageItem) => ([
+            {
+                coverImage: i_CoverImages[randomNumber].src,
+                uncoverImage: cloudinaryImage.src,
+                covered: true
+            },
+            {
+                coverImage: i_CoverImages[randomNumber].src,
+                uncoverImage: cloudinaryImage.src,
+                covered: true
+            }
+        ]));
 
-        cards = [...firstSet, ...secondSet];
+        const cards = duplicatedCards.map((card, index) => ({
+            id: index,
+            ...card
+        }));
+
         return this.shuffleArray(cards);
     }
 
