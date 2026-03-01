@@ -101,15 +101,15 @@ import {PokemonMemoryPageProps} from '../App'
   };
 
   return (
-    <div className="max-w-[860px] mx-auto py-10 flex flex-col items-center min-h-screen">
+    <div className="w-full max-w-[860px] mx-auto px-4 py-6 md:py-10 flex flex-col items-center min-h-screen">
       {/* Header with auth info */}
-      <div className="w-full grid grid-cols-[1fr_auto_1fr] items-center mb-10">
-        <div className="min-h-[32px]" />
-        <h1 className="text-white text-3xl font-bold text-center">Pokemon Memory Game</h1>
-        <div className="flex items-center justify-end gap-4 min-h-[32px]">
+      <div className="w-full flex flex-col gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center mb-8 md:mb-10">
+        <div className="hidden md:block min-h-[32px]" />
+        <h1 className="text-white text-2xl md:text-3xl font-bold text-center">Pokemon Memory Game</h1>
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 md:gap-4 min-h-[32px]">
           {isAuthenticated ? (
             <>
-              <span className="text-white text-sm">Welcome, <span className="font-bold">{authUsername}</span></span>
+              <span className="text-white text-xs md:text-sm">Welcome, <span className="font-bold">{authUsername}</span></span>
               <button
                 onClick={handleLogout}
                 className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-bold"
@@ -137,25 +137,25 @@ import {PokemonMemoryPageProps} from '../App'
       </div>
 
         
-        { playerName !== "" ? <span className="my-5 text-white text-xl mb-4">{`Let's go again ${playerName}!`}</span> : 
+        { playerName !== "" ? <span className="my-5 text-white text-lg md:text-xl mb-4 text-center">{`Let's go again ${playerName}!`}</span> : 
         <>
           {isAuthenticated ? (
-            <p className="my-5 text-white text-xl mb-4">Playing as: <span className="font-bold">{authUsername}</span></p>
+            <p className="my-5 text-white text-lg md:text-xl mb-4 text-center">Playing as: <span className="font-bold">{authUsername}</span></p>
           ) : (
             <>
-              <p id="enterName" className="my-5 text-white text-xl mb-4">Enter your name</p>
-              <input ref={inputNameRef} type="text" placeholder="Name" id="name" autoComplete="off" className={`border-2 border-slate-300 mb-5 p-3 text-lg text-black bg-white rounded-md focus:outline-none focus:border-blue-500 ${error ? 'border-red-500' : ''}`} />
+              <p id="enterName" className="my-5 text-white text-lg md:text-xl mb-4 text-center">Enter your name</p>
+              <input ref={inputNameRef} type="text" placeholder="Name" id="name" autoComplete="off" className={`w-full max-w-sm border-2 border-slate-300 mb-5 p-3 text-base md:text-lg text-black bg-white rounded-md focus:outline-none focus:border-blue-500 ${error ? 'border-red-500' : ''}`} />
             </>
           )}
         </>}
 
         {error && <p className="text-red-500">{error}</p>} 
     
-        <button onClick={handlePlayOnlineClick} id="find" className="mb-2 text-xl text-white bg-black px-3 py-1 rounded-md">Play online</button>
-        <button onClick={handlePlayAgaisntComputerClick} id="find" className="mb-2 text-xl text-white bg-black px-3 py-1 rounded-md">Against computer</button>
+        <button onClick={handlePlayOnlineClick} id="find" className="w-full max-w-sm mb-2 text-lg md:text-xl text-white bg-black px-3 py-2 rounded-md">Play online</button>
+        <button onClick={handlePlayAgaisntComputerClick} id="find" className="w-full max-w-sm mb-2 text-lg md:text-xl text-white bg-black px-3 py-2 rounded-md">Against computer</button>
 
         {isAuthenticated && (
-          <button onClick={handleSearchForFriend} className="mb-2 text-xl text-white bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded-md">Search for Friend</button>
+          <button onClick={handleSearchForFriend} className="w-full max-w-sm mb-2 text-lg md:text-xl text-white bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-md">Search for Friend</button>
         )}
 
         {loading && (

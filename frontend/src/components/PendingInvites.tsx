@@ -101,7 +101,7 @@ const PendingInvites = ({ onGameStarting }: PendingInvitesProps) => {
   }
 
   return (
-    <div className="fixed top-4 right-4 max-w-sm bg-gray-700 rounded-lg p-4 shadow-lg border border-gray-600">
+    <div className="fixed top-3 left-3 right-3 md:top-4 md:left-auto md:right-4 w-auto md:w-full md:max-w-sm bg-gray-700 rounded-lg p-4 shadow-lg border border-gray-600 z-50">
       <h3 className="text-white font-bold text-lg mb-3">
         Game Invitations {hasInvites ? `(${sentInvites.length + receivedInvites.length})` : ""}
       </h3>
@@ -140,13 +140,13 @@ const PendingInvites = ({ onGameStarting }: PendingInvitesProps) => {
           <h4 className="text-white text-sm font-semibold mb-2">Invitations Sent:</h4>
           <div className="space-y-2">
             {sentInvites.map(invite => (
-              <div key={invite.inviteId} className="bg-gray-600 p-2 rounded text-sm flex justify-between items-center">
+              <div key={invite.inviteId} className="bg-gray-600 p-2 rounded text-sm flex flex-col sm:flex-row gap-2 sm:gap-0 justify-between sm:items-center">
                 <span className="text-white">
                   Waiting for <span className="font-semibold">{invite.toUsername}</span>...
                 </span>
                 <button
                   onClick={() => handleCancelInvite(invite.inviteId)}
-                  className="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs font-bold"
+                  className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs font-bold"
                 >
                   Cancel
                 </button>

@@ -117,13 +117,14 @@ const PlayerSearch = ({ isAuthenticated, authUsername, onLogout }: PlayerSearchP
   };
 
   return (
-    <div className="max-w-[860px] mx-auto py-10 flex flex-col items-center min-h-screen">
-      <div className="w-full flex justify-between items-center mb-10">
-        <h1 className="text-white text-3xl font-bold text-center flex-1">Search for Friend</h1>
-        <div className="flex items-center gap-4">
+    <div className="w-full max-w-[860px] mx-auto px-4 py-6 md:py-10 flex flex-col items-center min-h-screen">
+      <div className="w-full flex flex-col gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center mb-8 md:mb-10">
+        <div className="hidden md:block min-h-[32px]" />
+        <h1 className="text-white text-2xl md:text-3xl font-bold text-center">Search for Friend</h1>
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 md:gap-4 min-h-[32px]">
           {isAuthenticated && (
             <>
-              <span className="text-white text-sm">Welcome, <span className="font-bold">{authUsername}</span></span>
+              <span className="text-white text-xs md:text-sm">Welcome, <span className="font-bold">{authUsername}</span></span>
               <button 
                 onClick={handleLogout}
                 className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-bold"
@@ -142,14 +143,14 @@ const PlayerSearch = ({ isAuthenticated, authUsername, onLogout }: PlayerSearchP
       </div>
 
       <div className="w-full max-w-md mb-8">
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             placeholder="Enter username..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
-            className="flex-1 border-2 border-slate-300 p-3 text-lg text-black bg-white rounded-md focus:outline-none focus:border-blue-500"
+            className="flex-1 border-2 border-slate-300 p-3 text-base md:text-lg text-black bg-white rounded-md focus:outline-none focus:border-blue-500"
           />
           <button
             onClick={handleSearch}
@@ -169,13 +170,13 @@ const PlayerSearch = ({ isAuthenticated, authUsername, onLogout }: PlayerSearchP
             {searchResults.map((user) => (
               <div
                 key={user.id}
-                className="bg-gray-700 p-4 rounded-lg flex justify-between items-center"
+                className="bg-gray-700 p-4 rounded-lg flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between sm:items-center"
               >
                 <span className="text-white font-semibold">{user.username}</span>
                 <button
                   onClick={() => handleInvite(user.id, user.username)}
                   disabled={sentInvites[user.id]}
-                  className={`px-3 py-1 rounded text-sm font-bold ${
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1 rounded text-sm font-bold ${
                     sentInvites[user.id]
                       ? "bg-gray-500 text-gray-300 cursor-not-allowed"
                       : "bg-green-600 hover:bg-green-700 text-white"
