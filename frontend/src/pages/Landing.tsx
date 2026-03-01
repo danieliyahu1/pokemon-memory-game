@@ -103,35 +103,37 @@ import {PokemonMemoryPageProps} from '../App'
   return (
     <div className="max-w-[860px] mx-auto py-10 flex flex-col items-center min-h-screen">
       {/* Header with auth info */}
-      <div className="w-full flex justify-between items-center mb-10">
-        <h1 className="text-white text-3xl font-bold text-center flex-1">Pokemon Memory Game</h1>
-        {isAuthenticated && (
-          <div className="flex items-center gap-4">
-            <span className="text-white text-sm">Welcome, <span className="font-bold">{authUsername}</span></span>
-            <button 
-              onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-bold"
-            >
-              Logout
-            </button>
-          </div>
-        )}
-        {!isAuthenticated && (
-          <div className="flex gap-2">
-            <button 
-              onClick={() => navigate('/login')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-bold"
-            >
-              Login
-            </button>
-            <button 
-              onClick={() => navigate('/register')}
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-bold"
-            >
-              Sign Up
-            </button>
-          </div>
-        )}
+      <div className="w-full grid grid-cols-[1fr_auto_1fr] items-center mb-10">
+        <div className="min-h-[32px]" />
+        <h1 className="text-white text-3xl font-bold text-center">Pokemon Memory Game</h1>
+        <div className="flex items-center justify-end gap-4 min-h-[32px]">
+          {isAuthenticated ? (
+            <>
+              <span className="text-white text-sm">Welcome, <span className="font-bold">{authUsername}</span></span>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-bold"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate('/login')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-bold"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => navigate('/register')}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-bold"
+              >
+                Sign Up
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
         
