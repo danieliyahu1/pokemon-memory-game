@@ -4,6 +4,10 @@ import { GameManagerType } from './types';
 class SocketEventHandler {
   private io: socketServer;
 
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   constructor(io: socketServer) {
     this.io = io;
   }
@@ -77,6 +81,10 @@ class SocketEventHandler {
         const aiMoveResult = await gameManager.AIMove(socket.id);
         endOfTurn = aiMoveResult.endOfTurn;
         gameOver = aiMoveResult.gameOver;
+
+        if (!gameOver && !endOfTurn) {
+          await this.sleep(1000);
+        }
       }
 
       if (!gameOver) {
