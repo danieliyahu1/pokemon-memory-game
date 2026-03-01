@@ -75,7 +75,7 @@ import {PokemonMemoryPageProps} from '../App'
         {error && <p className="text-red-500">{error}</p>} 
     
         <button onClick={handlePlayOnlineClick} id="find" className="mb-2 text-xl text-white bg-black px-3 py-1 rounded-md">Play online</button>
-        <button onClick={handlePlayAgaisntComputerClick} id="find" className="text-xl text-white bg-black px-3 py-1 rounded-md">Agaisnt comuter</button>
+        <button onClick={handlePlayAgaisntComputerClick} id="find" className="text-xl text-white bg-black px-3 py-1 rounded-md">Against computer</button>
 
         {loading && (
         <img id="loading" src={loadingGif} alt="Loading" className="w-[30px] mt-4" />
