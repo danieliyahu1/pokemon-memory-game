@@ -2,6 +2,7 @@ import React from "react";
 
 type HeaderProps = {
   gameName: string;
+  playerName: string;
   opponentName: string;
   myTurn: boolean;
   playerTurns: number;
@@ -12,6 +13,7 @@ type HeaderProps = {
 
 const GameHeader: React.FC<HeaderProps> = ({
   gameName,
+  playerName,
   opponentName,
   myTurn,
   playerTurns,
@@ -40,7 +42,7 @@ const GameHeader: React.FC<HeaderProps> = ({
               : "border-2 border-gray-500 bg-gray-800"
           }`}
         >
-          <p className="font-bold text-xl mb-2">You</p>
+          <p className="font-bold text-xl mb-2">{playerName}</p>
           <div className="flex gap-6 text-sm">
             <div className="flex flex-col items-center">
               <p className="text-gray-400">Moves</p>

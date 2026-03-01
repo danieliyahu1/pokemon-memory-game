@@ -7,6 +7,9 @@ import { v2 as cloudinary } from 'cloudinary';
 import Player from './player';
 import Game from './game';
 import AIPlayer from './AIPlayer';
+import PlayerSessionManager from './managers/PlayerSessionManager';
+import InviteManager from './managers/InviteManager';
+import { verifyTokenSocket } from './middleware/auth';
 
 class GameManager implements GameManagerType{
     private static instance: GameManager;
@@ -19,6 +22,8 @@ class GameManager implements GameManagerType{
     private gameStarted = new Map<GameType, boolean[]>();
     private socketEventHandler: socketEventHandlerType;
     private audios: Map<string, string>;
+    public playerSessionManager: PlayerSessionManager;
+    public inviteManager: InviteManager;
 
 
     //cards should be in a game not game manager
@@ -47,6 +52,8 @@ class GameManager implements GameManagerType{
         this.gameStarted = new Map<GameType, boolean[]>();
         this.socketEventHandler = new SocketEventHandler(this.io);
         this.audios = new Map<string,string>();
+        this.playerSessionManager = new PlayerSessionManager();
+        this.inviteManager = new InviteManager();
        
         // Initialize the game
         this.initialize();
@@ -80,10 +87,43 @@ class GameManager implements GameManagerType{
 
         this.io.on("connection", (socket) => {
             console.log(`New client connected: ${socket.id}`);
+            
+            // Check if user is authenticated via JWT token
+            let authenticatedUserId: string | null = null;
+            let authenticatedUsername: string | null = null;
+
+            // Try to get token from socket.handshake.auth (Socket.IO 4.x auth option)
+            const token = socket.handshake.auth?.token || 
+                         // Fallback to Authorization header if provided
+                         socket.handshake.headers.authorization?.split(' ')[1];
+
+            if (token) {
+                const decoded = verifyTokenSocket(token);
+                if (decoded) {
+                    authenticatedUserId = decoded.userId;
+                    authenticatedUsername = decoded.username;
+                    // Add to player session manager
+                    this.playerSessionManager.addSession(authenticatedUserId, authenticatedUsername, socket.id);
+                    socket.data.userId = authenticatedUserId;
+                    socket.data.username = authenticatedUsername;
+                    console.log(`Authenticated user connected: ${authenticatedUsername}`);
+                } else {
+                    console.warn(`Token verification failed for socket ${socket.id}`);
+                }
+            } else {
+                console.log(`Socket ${socket.id} connected without authentication`);
+            }
+
             this.socketEventHandler.listenToEvents(socket, this);          
 
             socket.on("disconnect", () => {
                 console.log(`Client disconnected: ${socket.id}`);
+                
+                // Remove from player session if authenticated
+                if (socket.data.userId) {
+                    this.playerSessionManager.removeSession(socket.data.userId);
+                    this.inviteManager.removeInvitesBySocketId(socket.id);
+                }
                 
                 const game: GameType = this.games.filter(game => game.p1.id === socket.id || game.p2.id === socket.id)[0];
                 if(game)
@@ -169,6 +209,32 @@ class GameManager implements GameManagerType{
     public canCreateGame() : boolean
     {
         return this.playersWaitList.length >= 2;
+    }
+
+    public createGameFromInvite(socket1: Socket, player1Name: string, socket2: Socket, player2Name: string): GameType | null
+    {
+        try {
+            const p1 = new Player(player1Name, socket1.id);
+            const p2 = new Player(player2Name, socket2.id);
+            
+            const id = p1.id + "-" + p2.id;
+            const cards = this.setAndGetCardsGame(this.cardImages, this.coverImages);
+            
+            const game: GameType = new Game(p1, p2, id, cards, false, this.audios, this.onGameOver.bind(this));
+            
+            // Join both players to the game room
+            socket1.join(game.id);
+            socket2.join(game.id);
+            
+            this.games.push(game);
+            this.gameStarted.set(game, [false, false]);
+            
+            console.log(`Game created from invite: ${player1Name} vs ${player2Name}`);
+            return game;
+        } catch (error) {
+            console.error('Error creating game from invite:', error);
+            return null;
+        }
     }
 
     private async featchAudios(): Promise<Map<string, string>>

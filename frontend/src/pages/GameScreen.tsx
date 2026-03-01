@@ -236,6 +236,7 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
         <div className="flex flex-col h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
             <GameHeader
                 gameName="Pokemon Memory Game"
+                playerName={m_MyName}
                 opponentName={opponentName}
                 myTurn={myTurn}
                 playerTurns={playerTurns}

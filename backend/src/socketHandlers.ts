@@ -14,6 +14,14 @@ class SocketEventHandler {
 
   public listenToEvents(socket: Socket, gameManager: GameManagerType) {
     socket.on("find", (data) => {
+      // Validate that authenticated users use their registered username
+      if (socket.data.userId && socket.data.username) {
+        if (data.name !== socket.data.username) {
+          socket.emit("inviteError", { error: "Authenticated users must use their registered username" });
+          return;
+        }
+      }
+      
       gameManager.createPlayer(data.name, socket.id);
       if (gameManager.canCreateGame()) {
         gameManager.creatrGameOnline(socket);
@@ -23,6 +31,14 @@ class SocketEventHandler {
     });
 
     socket.on("playAlone", (data) => {
+      // Validate that authenticated users use their registered username
+      if (socket.data.userId && socket.data.username) {
+        if (data.name !== socket.data.username) {
+          socket.emit("inviteError", { error: "Authenticated users must use their registered username" });
+          return;
+        }
+      }
+      
       gameManager.createPlayer(data.name, socket.id);
       gameManager.createAIPlayer("Sai");
 
@@ -68,6 +84,160 @@ class SocketEventHandler {
             }
           }, 2000);
       }
+    });
+
+    // New invite system events
+    socket.on("sendGameInvite", (data: { toUserId: string; toUsername: string }) => {
+      const fromUserId = socket.data.userId;
+      const fromUsername = socket.data.username;
+
+      if (!fromUserId || !fromUsername) {
+        socket.emit("inviteError", { error: "You must be authenticated to send invites" });
+        return;
+      }
+
+      const toSession = gameManager.playerSessionManager.getSession(data.toUserId);
+      if (!toSession) {
+        socket.emit("inviteError", { error: "User is not online" });
+        return;
+      }
+
+      const inviteId = gameManager.inviteManager.sendInvite(
+        fromUserId,
+        fromUsername,
+        data.toUserId,
+        data.toUsername
+      );
+
+      // Send notification to recipient
+      this.io.to(toSession.socketId).emit("gameInviteReceived", {
+        inviteId,
+        fromUsername,
+        fromUserId,
+      });
+
+      // Confirm to sender
+      socket.emit("inviteSent", { inviteId });
+    });
+
+    socket.on("acceptGameInvite", (data: { inviteId: string }) => {
+      console.log(`Accept invite request: ${data.inviteId}`);
+      
+      const invite = gameManager.inviteManager.acceptInvite(data.inviteId);
+      if (!invite) {
+        console.error(`Invite not found: ${data.inviteId}`);
+        socket.emit("inviteError", { error: "Invite not found" });
+        return;
+      }
+
+      console.log(`Invite found: ${invite.fromUsername} -> ${invite.toUsername}`);
+      
+      // Look up current sessions for both users using their user IDs
+      const fromSession = gameManager.playerSessionManager.getSession(invite.fromUserId);
+      const toSession = gameManager.playerSessionManager.getSession(invite.toUserId);
+
+      if (!fromSession || !toSession) {
+        console.error(`One or both sessions not found. fromSession: ${fromSession ? 'found' : 'missing'}, toSession: ${toSession ? 'found' : 'missing'}`);
+        socket.emit("inviteError", { error: "One of the players is no longer online" });
+        return;
+      }
+
+      // Get the actual socket objects using the current socket IDs
+      const socket1 = this.io.sockets.sockets.get(fromSession.socketId);
+      const socket2 = this.io.sockets.sockets.get(toSession.socketId);
+
+      if (!socket1 || !socket2) {
+        console.error(`One or both sockets not found. socket1: ${socket1 ? 'found' : 'missing'}, socket2: ${socket2 ? 'found' : 'missing'}`);
+        socket.emit("inviteError", { error: "One of the players is no longer online" });
+        return;
+      }
+
+      // Create game from invite
+      const game = gameManager.createGameFromInvite(
+        socket1,
+        invite.fromUsername,
+        socket2,
+        invite.toUsername
+      );
+
+      if (!game) {
+        console.error("Failed to create game from invite");
+        socket.emit("inviteError", { error: "Failed to create game" });
+        return;
+      }
+
+      console.log(`Game created: ${game.id}, emitting startGame to both players`);
+      // Notify both players that game is starting
+      this.io.in(game.id).emit("startGame");
+
+      // Remove the accepted invite
+      gameManager.inviteManager.cancelInvite(data.inviteId);
+    });
+
+    socket.on("rejectGameInvite", (data: { inviteId: string }) => {
+      const invite = gameManager.inviteManager.getInvite(data.inviteId);
+      if (!invite) {
+        socket.emit("inviteError", { error: "Invite not found" });
+        return;
+      }
+
+      gameManager.inviteManager.rejectInvite(data.inviteId);
+
+      // Notify sender that invite was rejected
+      const fromSession = gameManager.playerSessionManager.getSession(invite.fromUserId);
+      if (fromSession) {
+        this.io.to(fromSession.socketId).emit("gameInviteRejected", {
+          inviteId: data.inviteId,
+          rejectingUsername: invite.toUsername,
+        });
+      }
+
+      socket.emit("inviteRejected", { inviteId: data.inviteId });
+    });
+
+    socket.on("cancelGameInvite", (data: { inviteId: string }) => {
+      const invite = gameManager.inviteManager.getInvite(data.inviteId);
+      if (!invite) {
+        socket.emit("inviteError", { error: "Invite not found" });
+        return;
+      }
+
+      gameManager.inviteManager.cancelInvite(data.inviteId);
+
+      // Notify recipient that invite was cancelled
+      const toSession = gameManager.playerSessionManager.getSession(invite.toUserId);
+      if (toSession) {
+        this.io.to(toSession.socketId).emit("gameInviteCancelled", {
+          inviteId: data.inviteId,
+          cancellingUsername: invite.fromUsername,
+        });
+      }
+
+      socket.emit("inviteCancelled", { inviteId: data.inviteId });
+    });
+
+    socket.on("getPendingInvites", () => {
+      const userId = socket.data.userId;
+      if (!userId) {
+        socket.emit("inviteError", { error: "You must be authenticated" });
+        return;
+      }
+
+      const sentInvites = gameManager.inviteManager.getInvitesSentByUser(userId);
+      const receivedInvites = gameManager.inviteManager.getInvitesReceivedByUser(userId);
+
+      socket.emit("pendingInvites", {
+        sent: sentInvites.map(invite => ({
+          inviteId: invite.inviteId,
+          toUsername: invite.toUsername,
+          toUserId: invite.toUserId,
+        })),
+        received: receivedInvites.map(invite => ({
+          inviteId: invite.inviteId,
+          fromUsername: invite.fromUsername,
+          fromUserId: invite.fromUserId,
+        })),
+      });
     });
 
   }

@@ -1,15 +1,20 @@
 import { Socket, Server as SocketServer } from 'socket.io';
 import {Result, MoveResult, CardType } from './sharedTypes';
+import PlayerSessionManager from './managers/PlayerSessionManager';
+import InviteManager from './managers/InviteManager';
 
 
 export type GameManagerType = {
     io: SocketServer;
+    playerSessionManager: PlayerSessionManager;
+    inviteManager: InviteManager;
     start(): void;
     createPlayer(i_Name: string, i_Id:string): void;
     createAIPlayer(i_Name: string): void;
     creatrGameOnline(i_Socket: Socket): void;
     creatrGameAgainstAI(i_Socket: Socket): void;
     canCreateGame() : boolean
+    createGameFromInvite(socket1: Socket, player1Name: string, socket2: Socket, player2Name: string): GameType | null;
     initializeGameForUI(i_Socket: Socket) : { result: Result, game: GameType, eventToEmit: string };
     getPlayersName(i_PlayerId: string) : {myName: string, opponentName: string, eventToEmit: string};
     move(i_Socket: Socket, i_CardId: number) : { moveResult: MoveResult, game: GameType, eventToEmitForCurrentPlayer: string, eventToEmitForSecondPlayer: string };
