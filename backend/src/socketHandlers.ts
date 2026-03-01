@@ -55,14 +55,14 @@ class SocketEventHandler {
 
     socket.on("move", (i_CardId) => {
       const { moveResult, game, eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer} = gameManager.move(socket, i_CardId);
-      socket.emit(eventToEmitForCurrentPlayer, {audioUrl: moveResult.audioUrl, cards: moveResult.cards, currentPlayerTurn: moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount });
-      socket.broadcast.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: moveResult.audioUrl, cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount });
+      socket.emit(eventToEmitForCurrentPlayer, {audioUrl: moveResult.audioUrl, cards: moveResult.cards, currentPlayerTurn: moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount, currentPlayerPointsCount: moveResult.currentPlayerPointsCount });
+      socket.broadcast.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: moveResult.audioUrl, cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount, currentPlayerPointsCount: moveResult.currentPlayerPointsCount });
 
       if (moveResult.cardsNotMatch) {
         setTimeout(() => {
             const { hideCardsResult, eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer} = gameManager.hideCards(socket.id);
-            socket.emit(eventToEmitForCurrentPlayer, {audioUrl: hideCardsResult.audioUrl, cards: hideCardsResult.cards, currentPlayerTurn: hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount });
-            socket.broadcast.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: hideCardsResult.audioUrl, cards: hideCardsResult.cards, currentPlayerTurn: !hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount });
+            socket.emit(eventToEmitForCurrentPlayer, {audioUrl: hideCardsResult.audioUrl, cards: hideCardsResult.cards, currentPlayerTurn: hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount, currentPlayerPointsCount: hideCardsResult.currentPlayerPointsCount });
+            socket.broadcast.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: hideCardsResult.audioUrl, cards: hideCardsResult.cards, currentPlayerTurn: !hideCardsResult.currentPlayerTurn, disableBoard: hideCardsResult.disableBoard, currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount, currentPlayerPointsCount: hideCardsResult.currentPlayerPointsCount });
             if (game.AIOponnent) {
               this.runAITurn(socket, gameManager, 2000);
             }
@@ -95,7 +95,8 @@ class SocketEventHandler {
             cards: hideCardsResult.cards,
             currentPlayerTurn: !hideCardsResult.currentPlayerTurn,
             disableBoard: hideCardsResult.disableBoard,
-            currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount
+            currentPlayerMovesCount: hideCardsResult.currentPlayerMovesCount,
+            currentPlayerPointsCount: hideCardsResult.currentPlayerPointsCount
           });
         }, 4000);
       }

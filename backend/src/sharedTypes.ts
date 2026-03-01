@@ -15,4 +15,5 @@ export type MoveResult = Result & {
     disableBoard: boolean,
     cardsNotMatch: boolean,
     currentPlayerMovesCount: number,
+    currentPlayerPointsCount: number,
 }

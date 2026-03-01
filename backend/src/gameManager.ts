@@ -349,7 +349,7 @@ class GameManager implements GameManagerType{
         const eventToEmitForSecondPlayer: string = "opponentMove";
         const game = this.findGameByPlayerId(i_PlayerId);
         const moveResult = game.AIMove();
-        this.io.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: moveResult.audioUrl, cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount });
+        this.io.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: moveResult.audioUrl, cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount, currentPlayerPointsCount: moveResult.currentPlayerPointsCount });
 
         return {endOfTurn: moveResult.cardsNotMatch, gameOver:game.gameIsOver}
     }

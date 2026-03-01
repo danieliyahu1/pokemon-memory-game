@@ -13,6 +13,8 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
     const [disableBoard, setBoardDisable] = useState<boolean>(false);
     const [playerTurns, setPlayerTurns] = useState<number>(0);
     const [opponentTurns, setOpponentTurns] = useState<number>(0);
+    const [playerPoints, setPlayerPoints] = useState<number>(0);
+    const [opponentPoints, setOpponentPoints] = useState<number>(0);
     const [opponentName, setOpponentName] = useState<string>("");
     const toastTimeOnScreen = 15000;
     const socketContext = useSocketContext();
@@ -64,7 +66,7 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
             setOpponentName(i_OpponentName);
         };  
 
-        const myMove = ({audioUrl, cards, currentPlayerTurn: myTurn, disableBoard, currentPlayerMovesCount: myMovesCount }: MoveResult) => {  
+        const myMove = ({audioUrl, cards, currentPlayerTurn: myTurn, disableBoard, currentPlayerMovesCount: myMovesCount, currentPlayerPointsCount: myPointsCount }: MoveResult) => {  
             playSound(audioUrl);            
             setBoardDisable(true);
             setCards(cards);
@@ -72,11 +74,12 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
                 setMyTurn(myTurn);
                 setBoardDisable(disableBoard);
                 setPlayerTurns(myMovesCount);
+                setPlayerPoints(myPointsCount);
             },500)
             
         }
 
-        const opponentMove = ({audioUrl, cards, currentPlayerTurn: myTurn, disableBoard, currentPlayerMovesCount: opponentMovesCount}: MoveResult) => {  
+        const opponentMove = ({audioUrl, cards, currentPlayerTurn: myTurn, disableBoard, currentPlayerMovesCount: opponentMovesCount, currentPlayerPointsCount: opponentPointsCount}: MoveResult) => {  
             playSound(audioUrl);
             setCards(cards);
             setBoardDisable(true);
@@ -84,6 +87,7 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
                 setMyTurn(myTurn);
                 setBoardDisable(disableBoard);
                 setOpponentTurns(opponentMovesCount);
+                setOpponentPoints(opponentPointsCount);
             },500)            
         }
 
@@ -215,6 +219,8 @@ const GameScreen = ({ playerName: m_MyName, endPageFunction: gameOver }: Pokemon
                 myTurn={myTurn}
                 playerTurns={playerTurns}
                 opponentTurns={opponentTurns}
+                playerPoints={playerPoints}
+                opponentPoints={opponentPoints}
             />
 
             <ToastContainer                

@@ -6,6 +6,8 @@ type HeaderProps = {
   myTurn: boolean;
   playerTurns: number;
   opponentTurns: number;
+  playerPoints: number;
+  opponentPoints: number;
 }
 
 const GameHeader: React.FC<HeaderProps> = ({
@@ -14,6 +16,8 @@ const GameHeader: React.FC<HeaderProps> = ({
   myTurn,
   playerTurns,
   opponentTurns,
+  playerPoints,
+  opponentPoints,
 }) => {
   return (
     <div className="bg-gray-700 text-white py-4 px-6 flex flex-col items-center">
@@ -27,6 +31,7 @@ const GameHeader: React.FC<HeaderProps> = ({
         >
           <p className="font-semibold">You</p>
           <p>{`Moves: ${playerTurns}`}</p>
+          <p>{`Points: ${playerPoints}`}</p>
           
         </div>
         
@@ -38,6 +43,7 @@ const GameHeader: React.FC<HeaderProps> = ({
         >
           <p className="font-semibold">{opponentName}</p>
           <p>{`Moves: ${opponentTurns}`}</p>
+          <p>{`Points: ${opponentPoints}`}</p>
         </div>
       </div>
     </div>

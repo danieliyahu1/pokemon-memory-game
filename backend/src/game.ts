@@ -66,6 +66,7 @@ class Game implements GameType {
         const currentSocketTurn = player.turn;   
         let i_DisableBoard: boolean = false;
         const movesCount = player.MovesCount; 
+        let pointsCount = player.points;
         let cardsNotMatch: boolean = false;
         let soundEffect = this.m_Audios.get('card_flipped');
 
@@ -75,6 +76,7 @@ class Game implements GameType {
             {
                 this.m_chosenCards = [];
                 this.playerGotPoint(player.id);
+                pointsCount = player.points;
                 soundEffect = this.m_Audios.get('cards_match');
             }
             else
@@ -109,6 +111,7 @@ class Game implements GameType {
             disableBoard: i_DisableBoard,
             cardsNotMatch: cardsNotMatch,
             currentPlayerMovesCount: movesCount,
+            currentPlayerPointsCount: pointsCount,
             audioUrl: soundEffect,
         }
         return result;
@@ -167,6 +170,7 @@ class Game implements GameType {
         const currentPlayerTurn = currentPlayer.turn;  
         const i_DisableBoard: boolean = false;
         const movesCount = currentPlayer.MovesCount;
+        const pointsCount = currentPlayer.points;
         const cardsNotMatch: boolean = false;
         const soundEffect: string | undefined = this.m_Audios.get('card_flipped');
         if(soundEffect === undefined)
@@ -180,6 +184,7 @@ class Game implements GameType {
             disableBoard: i_DisableBoard,
             cardsNotMatch: cardsNotMatch,
             currentPlayerMovesCount: movesCount,
+            currentPlayerPointsCount: pointsCount,
             audioUrl: soundEffect
         }
 
