@@ -39,10 +39,10 @@ button {
   @apply font-semibold transition-all duration-300;
 }
 
-button:hover {
+button:not(:disabled):hover {
   @apply transform hover:scale-105;
 }
 
-button:active {
+button:not(:disabled):active {
   @apply transform scale-95;
 }
