@@ -20,7 +20,10 @@ class Game implements GameType {
         this.m_id = id;
         this.m_cards = cards;
         this.m_chosenCards = [];
-        this.m_p1.turn = true;
+        // Randomly decide who goes first
+        const isP1First = Math.random() < 0.5;
+        this.m_p1.turn = isP1First;
+        this.m_p2.turn = !isP1First;
         this.onGameOver = onGameOver;
         this.m_GameOver = false;
         this.m_AIOponnent = AIOponnent;
