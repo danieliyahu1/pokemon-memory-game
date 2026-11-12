@@ -62,8 +62,8 @@ const server = http.createServer(app);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 
-app.use(express.static(path.resolve("")));
-
+// Serve only the built frontend. `express.static(path.resolve(""))` used to sit
+// here and exposed the process working directory, including backend sources.
 app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 
 app.get("*", (req: Request, res: Response) => {
