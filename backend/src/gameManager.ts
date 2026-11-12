@@ -64,8 +64,10 @@ class GameManager implements GameManagerType{
         this.playerSessionManager = new PlayerSessionManager();
         this.inviteManager = new InviteManager();
 
-        // Initialize the game
-        this.initialize();
+        // Handlers are registered before the port opens, so a pod that receives
+        // SIGTERM during the asset load still shuts down cleanly.
+        this.handleExit();
+        this.registerSocketHandlers();
     }
 
     public static getInstance(server: http.Server): GameManager {
@@ -76,14 +78,26 @@ class GameManager implements GameManagerType{
     }
 
     public start() {
-        // Start the Socket.IO server
-        const PORT = process.env.SOCKET_PORT || 7000;
-        this.server.listen(PORT, () => {
-            console.log(`Socket.IO server is running on port ${PORT}`);
+        // Assets come from Cloudinary, so the port opens only after they are
+        // loaded: a credential or network failure must surface as a crash loop
+        // (with logs) rather than as a server that answers probes but cannot
+        // deal a single card.
+        void this.initialize()
+            .then(() => this.listen())
+            .catch((error) => {
+                console.error('Failed to initialize the game manager:', error);
+                process.exit(1);
+            });
+    }
+
+    private listen() {
+        const port = Number(process.env.SOCKET_PORT || 7000);
+        this.server.listen(port, () => {
+            console.log(`Socket.IO server is running on port ${port}`);
         });
     }
 
-    private async initialize() 
+    private async initialize()
     {
          // Fetch images when server starts
          this.cardImages = await this.fetchImagesFromCloudinary('card_pokemon');
@@ -92,10 +106,10 @@ class GameManager implements GameManagerType{
          cloudinaryAssets.set({ kind: 'cards' }, this.cardImages.length);
          cloudinaryAssets.set({ kind: 'covers' }, this.coverImages.length);
          cloudinaryAssets.set({ kind: 'audio' }, this.audios.size);
+    }
 
-         // Initialize shutdown handlers
-        await this.handleExit();
-
+    private registerSocketHandlers()
+    {
         this.io.on("connection", (socket) => {
             console.log(`New client connected: ${socket.id}`);
             connectedClients.set(this.io.engine.clientsCount);
