@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prometheus-io/client": "^0.16.1",
     "@types/jsonwebtoken": "^9.0.10",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.4.0",

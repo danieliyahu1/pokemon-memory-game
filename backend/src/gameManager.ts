@@ -10,6 +10,15 @@ import AIPlayer from './AIPlayer';
 import PlayerSessionManager from './managers/PlayerSessionManager';
 import InviteManager from './managers/InviteManager';
 import { verifyTokenSocket } from './middleware/auth';
+import {
+    activeGames,
+    cloudinaryAssets,
+    connectedClients,
+    gamesCreated,
+    gamesFinished,
+    moves,
+    waitingPlayers,
+} from './metrics';
 
 class GameManager implements GameManagerType{
     private static instance: GameManager;
@@ -54,10 +63,9 @@ class GameManager implements GameManagerType{
         this.audios = new Map<string,string>();
         this.playerSessionManager = new PlayerSessionManager();
         this.inviteManager = new InviteManager();
-       
+
         // Initialize the game
         this.initialize();
-
     }
 
     public static getInstance(server: http.Server): GameManager {
@@ -81,12 +89,16 @@ class GameManager implements GameManagerType{
          this.cardImages = await this.fetchImagesFromCloudinary('card_pokemon');
          this.coverImages = await this.fetchImagesFromCloudinary('cover_pokemon');
          this.audios = await this.featchAudios();
+         cloudinaryAssets.set({ kind: 'cards' }, this.cardImages.length);
+         cloudinaryAssets.set({ kind: 'covers' }, this.coverImages.length);
+         cloudinaryAssets.set({ kind: 'audio' }, this.audios.size);
 
          // Initialize shutdown handlers
         await this.handleExit();
 
         this.io.on("connection", (socket) => {
             console.log(`New client connected: ${socket.id}`);
+            connectedClients.set(this.io.engine.clientsCount);
             
             // Check if user is authenticated via JWT token
             let authenticatedUserId: string | null = null;
@@ -118,6 +130,7 @@ class GameManager implements GameManagerType{
 
             socket.on("disconnect", () => {
                 console.log(`Client disconnected: ${socket.id}`);
+                connectedClients.set(this.io.engine.clientsCount);
                 
                 // Remove from player session if authenticated
                 if (socket.data.userId) {
@@ -131,9 +144,11 @@ class GameManager implements GameManagerType{
                     // Handle player disconnection if needed
                     this.io.to(game.id).emit("opponentDisconnected", {i_Sound: this.audios.get('draw')});
                     this.gameStarted.delete(game);
-                    this.games = this.games.filter(game => game.p1.id !== socket.id && game.p2.id !== socket.id);                
+                    this.games = this.games.filter(game => game.p1.id !== socket.id && game.p2.id !== socket.id);
+                    activeGames.set(this.games.length);
                 }
                 this.playersWaitList = this.playersWaitList.filter(player=> player.id !== socket.id);
+                waitingPlayers.set(this.playersWaitList.length);
                 socket.removeAllListeners();
                 //I should let the other palyer know that the game ended
             });
@@ -149,6 +164,7 @@ class GameManager implements GameManagerType{
 
         let player: PlayerType = new Player(i_Name, i_Id);
         this.playersWaitList.push(player);
+        waitingPlayers.set(this.playersWaitList.length);
     }
 
     public createAIPlayer(i_Name: string)
@@ -162,6 +178,7 @@ class GameManager implements GameManagerType{
 
         let player: AIPlayerType = new AIPlayer(i_Name, id);
         this.playersWaitList.push(player);
+        waitingPlayers.set(this.playersWaitList.length);
     }
 
     public creatrGameAgainstAI(i_Socket: Socket)
@@ -189,6 +206,9 @@ class GameManager implements GameManagerType{
         this.games.push(game);
         this.gameStarted.set(game,[false, false]);
         this.playersWaitList.splice(0,2);
+        waitingPlayers.set(this.playersWaitList.length);
+        activeGames.set(this.games.length);
+        gamesCreated.inc({ mode: AIOponnent ? 'ai' : 'online' });
     }
 
     public findGameByPlayerId (i_id:string): GameType
@@ -228,6 +248,8 @@ class GameManager implements GameManagerType{
             
             this.games.push(game);
             this.gameStarted.set(game, [false, false]);
+            activeGames.set(this.games.length);
+            gamesCreated.inc({ mode: 'invite' });
             
             console.log(`Game created from invite: ${player1Name} vs ${player2Name}`);
             return game;
@@ -406,6 +428,7 @@ class GameManager implements GameManagerType{
         const eventToEmitForSecondPlayer: string = "opponentMove";
         const game = this.findGameByPlayerId(i_Socket.id);
         const moveResult = game.move(i_CardId);
+        moves.inc({ result: moveResult.cardsNotMatch ? 'miss' : 'play' });
         return {moveResult: moveResult, game: game, eventToEmitForCurrentPlayer: eventToEmitForCurrentPlayer, eventToEmitForSecondPlayer: eventToEmitForSecondPlayer};
     }
 
@@ -415,6 +438,7 @@ class GameManager implements GameManagerType{
         const eventToEmitForSecondPlayer: string = "opponentMove";
         const game = this.findGameByPlayerId(i_PlayerId);
         const moveResult = game.AIMove();
+        moves.inc({ result: moveResult.cardsNotMatch ? 'miss' : 'play' });
         this.io.to(game.id).emit(eventToEmitForSecondPlayer, {audioUrl: moveResult.audioUrl, cards: moveResult.cards, currentPlayerTurn: !moveResult.currentPlayerTurn, disableBoard: moveResult.disableBoard, currentPlayerMovesCount: moveResult.currentPlayerMovesCount, currentPlayerPointsCount: moveResult.currentPlayerPointsCount });
 
         return {endOfTurn: moveResult.cardsNotMatch, gameOver:game.gameIsOver}
@@ -507,6 +531,8 @@ class GameManager implements GameManagerType{
         
         this.gameStarted.delete(this.games.filter(game => game.id === i_GameId)[0]);
         this.games = this.games.filter(game => game.id !== i_GameId);
+        activeGames.set(this.games.length);
+        gamesFinished.inc({ result: i_Winner ? 'win' : 'draw' });
 
         const winingAudio: string | undefined = this.audios.get('player_won');
         const losingAudio: string | undefined = this.audios.get('player_lost');

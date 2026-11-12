@@ -8,10 +8,31 @@ import { GameManagerType } from './types';
 import mongoose from 'mongoose';
 import authRoutes from './routes/auth';
 import usersRoutes from './routes/users';
+import {
+    httpRequestDuration,
+    httpRequests,
+    mongoConnected,
+    routeLabel,
+    startMetricsServer,
+} from './metrics';
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Bounded-label request metrics. `finish` fires for every response, including
+// ones the static handler and the SPA catch-all produce.
+app.use((req, res, next) => {
+    const start = process.hrtime.bigint();
+    res.on('finish', () => {
+        const route = routeLabel(req.path);
+        const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+        httpRequests.inc({ method: req.method, route, status: String(res.statusCode) });
+        httpRequestDuration.observe({ method: req.method, route }, durationSeconds);
+    });
+    next();
+});
+
 app.use(cors({
     origin: process.env.FRONTEND_URL,
     credentials: true,
@@ -27,6 +48,9 @@ mongoose.connect(MONGODB_URI)
     .catch((error) => {
         console.error('MongoDB connection error:', error);
     });
+mongoConnected.set(0);
+mongoose.connection.on('connected', () => mongoConnected.set(1));
+mongoose.connection.on('disconnected', () => mongoConnected.set(0));
 
 const server = http.createServer(app);
 
@@ -44,6 +68,9 @@ app.get("*", (req: Request, res: Response) => {
 
 const game: GameManagerType = getInstance(server);
 game.start();
+
+// Metrics live on their own port so the public Service never exposes them.
+startMetricsServer(Number(process.env.METRICS_PORT || 9464));
 
 // const PORT = process.env.PORT || 7001;
 // app.listen(PORT, () => {
