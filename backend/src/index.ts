@@ -33,6 +33,10 @@ app.use((req, res, next) => {
     next();
 });
 
+// Kubernetes probes answer before the SPA catch-all can claim the path.
+app.get('/healthz', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok' });
+});
 app.use(cors({
     origin: process.env.FRONTEND_URL,
     credentials: true,
