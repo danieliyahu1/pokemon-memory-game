@@ -9,6 +9,9 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
+# The React app type-imports the game's shared types straight out of the backend
+# source tree, so the build stage needs that one file.
+COPY backend/src/sharedTypes.ts /app/backend/src/sharedTypes.ts
 RUN npm run build
 
 FROM node:24-bookworm-slim AS backend
