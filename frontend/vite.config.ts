@@ -10,6 +10,13 @@ export default defineConfig({
         target: 'http://localhost:7000',
         changeOrigin: true,
       },
+      // The browser opens the websocket on its own origin; without this the dev
+      // server answers the handshake and the game never leaves the lobby.
+      '/socket.io': {
+        target: 'http://localhost:7000',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 })
