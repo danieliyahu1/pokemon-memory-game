@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pokemon-memory-game-config
+  namespace: pokemon-memory-game
+  labels:
+    app.kubernetes.io/name: pokemon-memory-game
+data:
+  NODE_ENV: production
+  # The Socket.IO server and the Express app share this port.
+  SOCKET_PORT: "7000"
+  # Scraped internally; never exposed through the public Service.
+  METRICS_PORT: "9464"
+  # Exactly the browser origin: CORS and Socket.IO both pin this value.
+  FRONTEND_URL: https://pokemon.danieliyahu.com

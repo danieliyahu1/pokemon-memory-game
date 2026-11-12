@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pokemon-memory-game
+  namespace: pokemon-memory-game
+  labels:
+    app.kubernetes.io/name: pokemon-memory-game
+    app.kubernetes.io/component: web
+spec:
+  # The Cloudflare tunnel reaches this ClusterIP directly; no node port, no
+  # ingress controller, nothing listening on the public interface.
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: pokemon-memory-game
+    app.kubernetes.io/component: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

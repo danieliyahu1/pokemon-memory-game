@@ -1,0 +1,18 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: pokemon-memory-game
+  namespace: pokemon-memory-game
+  labels:
+    app.kubernetes.io/name: pokemon-memory-game
+    app.kubernetes.io/component: metrics
+spec:
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pokemon-memory-game
+      app.kubernetes.io/component: metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 20s

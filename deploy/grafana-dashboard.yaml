@@ -1,0 +1,288 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pokemon-memory-game-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  pokemon-memory-game-overview.json: |
+    {
+      "uid": "pokemon-memory-game-overview",
+      "title": "Pokémon Memory Game / Overview",
+      "tags": ["pokemon-memory-game"],
+      "timezone": "UTC",
+      "editable": false,
+      "schemaVersion": 39,
+      "refresh": "30s",
+      "time": { "from": "now-24h", "to": "now" },
+      "templating": { "list": [] },
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Requests / min",
+          "description": "HTTP requests per minute served by the game.",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "reqpm", "decimals": 1 }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum(rate(pokemon_http_requests_total{job=\"pokemon-memory-game\"}[5m])) * 60",
+              "legendFormat": "requests"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "Error ratio",
+          "description": "Share of responses with a 5xx status.",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 1,
+              "thresholds": { "mode": "absolute", "steps": [
+                { "color": "green", "value": null },
+                { "color": "orange", "value": 2 },
+                { "color": "red", "value": 10 }
+              ] }
+            },
+            "overrides": []
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "100 * sum(rate(pokemon_http_requests_total{job=\"pokemon-memory-game\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(pokemon_http_requests_total{job=\"pokemon-memory-game\"}[5m])), 0.000001)",
+              "legendFormat": "errors"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "p95 request latency",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "s", "decimals": 2 }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(pokemon_http_request_duration_seconds_bucket{job=\"pokemon-memory-game\"}[5m])))",
+              "legendFormat": "p95"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "Connected players",
+          "description": "Open Socket.IO connections.",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "none", "decimals": 0 }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "pokemon_socket_clients{job=\"pokemon-memory-game\"}",
+              "legendFormat": "clients"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "type": "stat",
+          "title": "Active games",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 5, "w": 6, "x": 0, "y": 5 },
+          "fieldConfig": { "defaults": { "unit": "none", "decimals": 0 }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "pokemon_active_games{job=\"pokemon-memory-game\"}",
+              "legendFormat": "games"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "type": "stat",
+          "title": "Waiting players",
+          "description": "Players in the matchmaking list with no opponent yet.",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 5, "w": 6, "x": 6, "y": 5 },
+          "fieldConfig": { "defaults": { "unit": "none", "decimals": 0 }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "pokemon_waiting_players{job=\"pokemon-memory-game\"}",
+              "legendFormat": "waiting"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "type": "stat",
+          "title": "MongoDB",
+          "description": "1 while the app holds an open database connection.",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 5, "w": 6, "x": 12, "y": 5 },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "decimals": 0,
+              "mappings": [
+                { "type": "value", "options": { "0": { "text": "disconnected", "color": "red" } } },
+                { "type": "value", "options": { "1": { "text": "connected", "color": "green" } } }
+              ]
+            },
+            "overrides": []
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "pokemon_mongodb_connected{job=\"pokemon-memory-game\"}",
+              "legendFormat": "mongo"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "type": "stat",
+          "title": "Assets loaded",
+          "description": "Card, cover and sound assets fetched from Cloudinary at startup.",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 5, "w": 6, "x": 18, "y": 5 },
+          "fieldConfig": { "defaults": { "unit": "none", "decimals": 0 }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum by (kind) (pokemon_cloudinary_assets{job=\"pokemon-memory-game\"})",
+              "legendFormat": "{{kind}}"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "type": "timeseries",
+          "title": "Request rate by route",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+          "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum by (route) (rate(pokemon_http_requests_total{job=\"pokemon-memory-game\"}[5m]))",
+              "legendFormat": "{{route}}"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "type": "timeseries",
+          "title": "Card moves by outcome",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+          "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum by (result) (rate(pokemon_moves_total{job=\"pokemon-memory-game\"}[5m]))",
+              "legendFormat": "{{result}}"
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "type": "timeseries",
+          "title": "Games started and finished",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+          "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum by (mode) (rate(pokemon_games_created_total{job=\"pokemon-memory-game\"}[5m]))",
+              "legendFormat": "started · {{mode}}"
+            },
+            {
+              "refId": "B",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum by (result) (rate(pokemon_games_finished_total{job=\"pokemon-memory-game\"}[5m]))",
+              "legendFormat": "finished · {{result}}"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "type": "timeseries",
+          "title": "Container CPU",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+          "fieldConfig": { "defaults": { "unit": "none", "custom": { "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"pokemon-memory-game\",container!=\"\"}[5m]))",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "type": "timeseries",
+          "title": "Container memory",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+          "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"pokemon-memory-game\",container!=\"\"})",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "type": "stat",
+          "title": "Container restarts",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+          "fieldConfig": { "defaults": { "unit": "none", "decimals": 0 }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+              "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"pokemon-memory-game\"})",
+              "legendFormat": "restarts"
+            }
+          ]
+        }
+      ]
+    }

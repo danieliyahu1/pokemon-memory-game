@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pokemon-memory-game
+  namespace: pokemon-memory-game
+  labels:
+    app.kubernetes.io/name: pokemon-memory-game
+    app.kubernetes.io/component: web
+spec:
+  # Matchmaking and games live in process memory, so exactly one replica. A
+  # second replica would split players across two independent servers.
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pokemon-memory-game
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pokemon-memory-game
+        app.kubernetes.io/component: web
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: ghcr.io/danieliyahu1/pokemon-memory-game:bootstrap
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 7000
+            - name: metrics
+              containerPort: 9464
+          envFrom:
+            - configMapRef:
+                name: pokemon-memory-game-config
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: pokemon-memory-game-secrets
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: pokemon-memory-game-secrets
+                  key: JWT_SECRET
+            - name: CLOUDINARY_CLOUD_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: pokemon-memory-game-secrets
+                  key: CLOUDINARY_CLOUD_NAME
+            - name: CLOUDINARY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pokemon-memory-game-secrets
+                  key: CLOUDINARY_API_KEY
+            - name: CLOUDINARY_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: pokemon-memory-game-secrets
+                  key: CLOUDINARY_API_SECRET
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            # Small Node process: a 4x4 board and a handful of sockets. The
+            # request stays low so this app never crowds the platform pods.
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 400m
+              memory: 384Mi
+          startupProbe:
+            # Boot includes fetching card, cover and sound assets from Cloudinary.
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

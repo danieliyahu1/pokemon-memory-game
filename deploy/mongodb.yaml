@@ -1,0 +1,126 @@
+# Single-node MongoDB. The game only needs durable user accounts and invites;
+# game state itself lives in the app process. A StatefulSet keeps the volume
+# identity stable across restarts without a database operator.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pokemon-mongo
+  namespace: pokemon-memory-game
+  labels:
+    app.kubernetes.io/name: pokemon-mongo
+    app.kubernetes.io/component: database
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: pokemon-mongo
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: mongodb
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pokemon-mongo
+  namespace: pokemon-memory-game
+  labels:
+    app.kubernetes.io/name: pokemon-mongo
+    app.kubernetes.io/component: database
+spec:
+  serviceName: pokemon-mongo
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pokemon-mongo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pokemon-mongo
+        app.kubernetes.io/component: database
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mongo
+          image: mongo:7.0.14
+          imagePullPolicy: IfNotPresent
+          args:
+            # The node has 12 GB, so MongoDB's default cache sizing (half of RAM)
+            # would exceed this container's limit and get it OOM-killed.
+            - --wiredTigerCacheSizeGB
+            - "0.25"
+          ports:
+            - name: mongodb
+              containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: pokemon
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pokemon-memory-game-secrets
+                  key: MONGO_ROOT_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              value: pokemon-game
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 400m
+              memory: 512Mi
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >-
+                  mongosh "mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin"
+                  --quiet --eval 'quit(db.runCommand({ping: 1}).ok ? 0 : 2)'
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >-
+                  mongosh "mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin"
+                  --quiet --eval 'quit(db.runCommand({ping: 1}).ok ? 0 : 2)'
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >-
+                  mongosh "mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin"
+                  --quiet --eval 'quit(db.runCommand({ping: 1}).ok ? 0 : 2)'
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 2Gi
