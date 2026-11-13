@@ -45,13 +45,27 @@ app.use(cors({
 
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pokemon-game';
-mongoose.connect(MONGODB_URI)
-    .then(() => {
-        console.log('Connected to MongoDB');
-    })
-    .catch((error) => {
-        console.error('MongoDB connection error:', error);
-    });
+
+// Mongo may still be running initdb on a fresh deploy, and mongoose does not retry
+// after an initial failure - which used to leave a healthy pod answering every auth
+// request with a 10s buffering timeout until someone restarted it by hand.
+async function connectToMongo(): Promise<void> {
+    const retryDelayMs = 3000;
+    for (;;) {
+        try {
+            await mongoose.connect(MONGODB_URI);
+            console.log('Connected to MongoDB');
+            return;
+        } catch (error) {
+            console.error(
+                `MongoDB connection failed (${(error as Error).message}); retrying in ${retryDelayMs / 1000}s`
+            );
+            await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        }
+    }
+}
+
+void connectToMongo();
 mongoConnected.set(0);
 mongoose.connection.on('connected', () => mongoConnected.set(1));
 mongoose.connection.on('disconnected', () => mongoConnected.set(0));
