@@ -9,6 +9,90 @@ You can play the game at:
 https://pokemon.danieliyahu.com
 
 
+## Architecture
+
+One Node process serves the built React bundle, the Socket.IO endpoint and the
+metrics port; a single-replica Deployment keeps matchmaking and game state in
+memory. Only the Cloudflare tunnel can reach the ClusterIP Service, and all
+credentials come from OCI Vault at runtime.
+
+```mermaid
+flowchart LR
+  subgraph browser["Player's browser"]
+    ui["React SPA<br/>Vite build"]
+    socket["Socket.IO client"]
+  end
+
+  subgraph cloudflare["Cloudflare"]
+    dns["pokemon.danieliyahu.com<br/>proxied CNAME"]
+    tunnel["Tunnel k3s-01"]
+  end
+
+  subgraph cluster["OCI k3s cluster"]
+    subgraph appns["namespace pokemon-memory-game"]
+      svc["Service pokemon-memory-game<br/>ClusterIP :80"]
+      app["Deployment pokemon-memory-game<br/>1 replica · HTTP + Socket.IO :7000<br/>metrics :9464"]
+      mongo["StatefulSet pokemon-mongo<br/>mongo:7.0.14"]
+      pvc[("PVC 2Gi<br/>local-path")]
+      metricsSvc["Service pokemon-memory-game-metrics<br/>ClusterIP :9464"]
+      secret["Secret pokemon-memory-game-secrets<br/>6 keys"]
+    end
+
+    subgraph platform["platform namespaces"]
+      argo["Argo CD<br/>Application pokemon-memory-game"]
+      eso["External Secrets Operator<br/>ClusterSecretStore oci-vault"]
+      vm["VictoriaMetrics<br/>VMServiceScrape"]
+      grafana["Grafana<br/>Pokémon Memory Game / Overview"]
+    end
+  end
+
+  subgraph external["External services"]
+    vault["OCI Vault<br/>il-jerusalem-1"]
+    cloudinary["Cloudinary<br/>card, cover and audio assets"]
+    ghcr["GHCR<br/>pokemon-memory-game image"]
+  end
+
+  ui --> dns --> tunnel --> svc --> app
+  socket -.->|WebSocket upgrade| tunnel
+  app -->|reads MONGODB_URI| mongo
+  mongo --- pvc
+  app -->|loads assets at boot| cloudinary
+  app --- metricsSvc
+  vm -->|scrapes /metrics every 20s| metricsSvc
+  grafana --> vm
+  eso -->|reads 6 vault entries| vault
+  eso -->|creates and refreshes| secret
+  secret -->|env vars| app
+  argo -->|reconciles deploy/| app
+  ghcr -->|pinned per-commit tag| app
+```
+
+### Delivery pipeline
+
+Git is the handoff between CI and the cluster: a push produces an immutable
+arm64 image, the workflow pins that tag in `deploy/deployment.yaml`, and Argo CD
+rolls the Deployment from the resulting commit.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Dev as Developer
+  participant CI as GitHub Actions
+  participant Reg as GHCR
+  participant Argo as Argo CD
+  participant K8s as k3s cluster
+
+  Dev->>CI: push to main
+  CI->>CI: verify frontend build, backend tests, kubeconform
+  CI->>Reg: publish linux/arm64 image tagged with the commit SHA
+  CI->>CI: pin the tag in deploy/deployment.yaml and commit back
+  Argo->>CI: detect the new commit under deploy/
+  Argo->>K8s: apply Deployment, Services and ExternalSecret
+  K8s->>Reg: pull the pinned image
+  K8s-->>Argo: report Synced / Healthy
+```
+
+
 ## Features
 
 - **Real-Time Multiplayer**: Players can join and play games in real-time.
