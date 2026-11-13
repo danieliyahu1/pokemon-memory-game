@@ -88,6 +88,9 @@ spec:
                 - >-
                   mongosh "mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin"
                   --quiet --eval 'quit(db.runCommand({ping: 1}).ok ? 0 : 2)'
+            # mongosh is a Node process and needs over a second just to start, so the
+            # default 1s timeout marks a healthy server as dead. 5s fits the 400m CPU cap.
+            timeoutSeconds: 5
             periodSeconds: 5
             failureThreshold: 30
           readinessProbe:
@@ -98,6 +101,7 @@ spec:
                 - >-
                   mongosh "mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin"
                   --quiet --eval 'quit(db.runCommand({ping: 1}).ok ? 0 : 2)'
+            timeoutSeconds: 5
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
@@ -108,6 +112,7 @@ spec:
                 - >-
                   mongosh "mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@127.0.0.1:27017/admin"
                   --quiet --eval 'quit(db.runCommand({ping: 1}).ok ? 0 : 2)'
+            timeoutSeconds: 5
             initialDelaySeconds: 30
             periodSeconds: 20
             failureThreshold: 3
