@@ -33,7 +33,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: app
-          image: ghcr.io/danieliyahu1/pokemon-memory-game:e63ff711209285845f3a58d8e9b4bdc6e006d10b
+          image: ghcr.io/danieliyahu1/pokemon-memory-game:776210592fcf1c8b81555883f5a694654957127b
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
